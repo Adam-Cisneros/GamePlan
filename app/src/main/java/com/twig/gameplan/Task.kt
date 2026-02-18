@@ -10,4 +10,7 @@ data class Task(
     val body: String? = null,
     val due: Date? = null,
     val completed: Boolean = false,
+    val subtasks: List<Task> = listOf(),
+    val milestone: String = "",
+    val stage: String = ""
 )

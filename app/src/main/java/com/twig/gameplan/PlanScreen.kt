@@ -90,10 +90,6 @@ fun PlanCard(
             ) {
                 PlanTitle(plan,
                     modifier = Modifier.weight(1f))
-                Icon(
-                    Icons.AutoMirrored.Outlined.List,
-                    contentDescription = "Notes"
-                )
                 Checkbox(
                     checked = plan.completed,
                     modifier = Modifier.alignByBaseline(),

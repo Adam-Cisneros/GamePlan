@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import com.twig.gameplan.Plan
-import com.twig.gameplan.PlanDescription
 import java.util.Calendar
 import java.util.Date
 import kotlin.toString
@@ -12,11 +11,13 @@ import kotlin.toString
 class GamePlanViewModel : ViewModel() {
     val planList = mutableStateListOf<Plan>()
     val taskList = mutableStateListOf<Task>()
+    val groupList = mutableStateListOf<Group>()
     val tagList = mutableStateListOf<String>("Study", "Fun", "Work", "Food")
 
     init {
         createTestPlans(10)
         createTestTasks(10)
+        createTestGroups(10)
     }
 
     fun findTaskById(id: String) : Task? {
@@ -121,13 +122,9 @@ class GamePlanViewModel : ViewModel() {
         // Add plans for testing purposes
         for (i in 1..numPlans) {
             val title = "Plan $i"
-            val body = when (i % 3) {
+            val body = when (i % 2) {
                 0 -> null
                 1 -> "description of plan $i"
-                2 -> (1..5)
-                    .joinToString(separator = "\n") {
-                        "${i}.${it} subplan"
-                    }
                 else -> "??"
             }
             val tags = tagList.slice((i%2)..(1+i%3))
@@ -137,4 +134,24 @@ class GamePlanViewModel : ViewModel() {
         }
     }
 
+    fun findGroupById(id: String) : Group? {
+        return groupList.find {it.id.toString() == id }
+    }
+
+    fun addGroup(group: Group) {
+        groupList.add(0, group)
+    }
+
+    fun deleteGroup(group: Group) {
+        groupList.remove(group)
+    }
+
+    fun createTestGroups(numGroups: Int = 10) {
+        // Add tasks for testing purposes
+        for (i in 1..numGroups) {
+            val name = "Group $i"
+
+            addGroup(Group(name = name))
+        }
+    }
 }

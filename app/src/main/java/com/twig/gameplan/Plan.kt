@@ -11,10 +11,5 @@ data class Plan(
     val due: Date? = null,
     val completed: Boolean = false,
     val tags: List<String> = listOf(),
-    val description: PlanDescription? = null
-)
-
-data class PlanDescription(
-    val text: String,
-    val datetime: Date,
+    val tasks: List<Task> = listOf()
 )

@@ -32,7 +32,7 @@ fun GamePlanTopBar(
 ) {
     TopAppBar(
         title = { Text(
-            "TaskStak",
+            "GamePlan",
             style = MaterialTheme.typography.displayLarge,
             textAlign = TextAlign.Center,
         ) },

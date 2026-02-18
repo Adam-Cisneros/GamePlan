@@ -34,10 +34,16 @@ sealed class Routes {
     data object Plans
 
     @Serializable
-    data class PlanDetail(val planId: String) // Add this for plan details
+    data class PlanDetail(val planId: String)
 
     @Serializable
-    data class TaskDetail(val taskId: String) // Add this for task details
+    data class TaskDetail(val taskId: String)
+
+    @Serializable
+    data object Group
+
+    @Serializable
+    data class GroupDetail(val groupId: String)
 }
 
 // Make composable for Main App module
@@ -48,61 +54,67 @@ fun GamePlanApp(
     var showConfirmationDialog by rememberSaveable { mutableStateOf(false) }
     var showPlanDialog by rememberSaveable { mutableStateOf(false) }
     val navController = rememberNavController()
-    NavHost(
-        navController = navController,
-        startDestination = Routes.Plans
-    ) {
-        // --- Plan Screen ---
-        composable<Routes.Plans> {
-            Scaffold(
-                // ...(your scaffold setup)
-            ) { innerPadding ->
+    Scaffold(
+        topBar = {
+            GamePlanTopBar(
+                canNavigateBack = false,
+                canDeleteTasks = model.completedTasksExist
+            )
+        },
+        floatingActionButton = {
+            TSFloatingActionButton(
+                onClick = { showPlanDialog = true },
+                imageVector = Icons.Default.Add
+            )
+        },
+        bottomBar = { BottomNav(navController = navController) }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = Routes.Plans, // Your starting screen
+            modifier = Modifier.padding(innerPadding) // Apply padding from the Scaffold
+        ) {
+            composable<Routes.Plans> {
                 PlanScreen(
                     model = model,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
-                    // UNCOMMENT THIS BLOCK
                     onSelectPlan = { plan ->
-                        navController.navigate(
-                            Routes.PlanDetail(plan.id.toString()) // Navigate to the correct route
-                        )
+                        navController.navigate(Routes.PlanDetail(plan.id.toString()))
                     }
                 )
             }
-        }
 
-        // --- To Do Screen ---
-        composable<Routes.ToDo> {
-            Scaffold(
-                // ...(your scaffold setup)
-            ) { innerPadding ->
+            composable<Routes.ToDo> {
                 ToDoScreen(
                     model = model,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
                     onSelectTask = { task ->
-                        navController.navigate(
-                            Routes.TaskDetail(task.id.toString()) // Navigate to the correct route
-                        )
+                        navController.navigate(Routes.TaskDetail(task.id.toString()))
                     }
                 )
             }
-        }
 
-        // --- Plan Detail Screen ---
-        composable<Routes.PlanDetail> { backStackEntry ->
-            // The toRoute() function extracts the type-safe object
-            val planDetail: Routes.PlanDetail = backStackEntry.toRoute()
-            PlanDetail(planId = planDetail.planId)
-        }
+            composable<Routes.PlanDetail> { backStackEntry ->
+                val planDetail: Routes.PlanDetail = backStackEntry.toRoute()
+                PlanDetail(planId = planDetail.planId)
+            }
 
-        // --- Task Detail Screen ---
-        composable<Routes.TaskDetail> { backStackEntry ->
-            // The toRoute() function extracts the type-safe object
-            val taskDetail: Routes.TaskDetail = backStackEntry.toRoute()
-            TaskDetail(taskId = taskDetail.taskId)
+            composable<Routes.TaskDetail> { backStackEntry ->
+                val taskDetail: Routes.TaskDetail = backStackEntry.toRoute()
+                TaskDetail(taskId = taskDetail.taskId)
+            }
+
+            composable<Routes.Group> {
+                GroupScreen(
+                    model = model,
+                    onSelectGroup = { group ->
+                        navController.navigate(Routes.GroupDetail(group.id.toString()))
+                    }
+                )
+            }
+
+            composable<Routes.GroupDetail> { backStackEntry ->
+                val groupDetail: Routes.GroupDetail = backStackEntry.toRoute()
+                GroupDetail(groupId = groupDetail.groupId)
+            }
         }
     }
 
