@@ -33,6 +33,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.twig.gameplan.ui.theme.GamePlanTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
+import androidx.compose.material3.LinearProgressIndicator
+
 
 @Composable
 fun PlanScreen(
@@ -52,6 +54,9 @@ fun PlanScreen(
                 },
                 onClick = {
                     onSelectPlan(it)
+                },
+                toggleC = {
+                    model.toggleTaskCompleted(it)
                 }
             )
         }
@@ -64,9 +69,8 @@ fun PlanCard(
     modifier: Modifier = Modifier,
     toggleCompleted: (Plan) -> Unit = {},
     onClick: (Plan) -> Unit = {},
+    toggleC: (Task) -> Unit = {}
 ) {
-    val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
-
     Card(
         modifier = modifier
             .padding(8.dp)
@@ -98,23 +102,18 @@ fun PlanCard(
                     })
 
             }
-            Row(
-                modifier= Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                PlanTags(plan)
-                plan.due?.let {
-                    Text(
-                        formatter.format(plan.due),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
             PlanBody(
                 plan,
                 modifier = Modifier.padding(16.dp, 0.dp)
+            )
+            PlanProgress(
+                plan,
+                modifier = Modifier.padding(16.dp, 0.dp)
+            )
+            PlanTodo(
+                plan,
+                modifier = Modifier.padding(16.dp, 0.dp),
+                toggleCompleted = toggleC
             )
         }
     }
@@ -155,20 +154,79 @@ fun PlanBody(
 }
 
 @Composable
-fun PlanTags(plan: Plan, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        plan.tags.forEach { tag ->
+fun PlanProgress(
+    plan: Plan,
+    modifier: Modifier = Modifier
+) {
+    if (plan.milestones.isNotEmpty()) {
+        Column(modifier = modifier) {
             Text(
-                tag,
-                modifier = Modifier
-                    .alignByBaseline()
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(4.dp),
-                color = MaterialTheme.colorScheme.onPrimary
+                text = "Progress",
+                style = MaterialTheme.typography.titleLarge,
+                color = if (plan.completed) Color.Gray else Color.Black
             )
+            plan.milestones.forEach { milestone ->
+                // Calculate the progress for each milestone
+                val completedTasks = milestone.tasks.count { it.completed }
+                val totalTasks = milestone.tasks.size
+                val progress = if (totalTasks > 0) {
+                    completedTasks.toFloat() / totalTasks.toFloat()
+                } else {
+                    0f
+                }
+
+                // Display the milestone title and its progress bar
+                Row(modifier = Modifier.padding(horizontal = 4.dp)) {
+                    Text(
+                        text = milestone.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (plan.completed) Color.Gray else Color.Black
+                    )
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlanTodo(
+    plan: Plan,
+    modifier: Modifier = Modifier,
+    toggleCompleted: (Task) -> Unit = {},
+) {
+    if (plan.milestones.isNotEmpty()) {
+        Column(modifier = modifier) {
+            Text(
+                text = "To Do",
+                style = MaterialTheme.typography.titleLarge,
+                color = if (plan.completed) Color.Gray else Color.Black
+            )
+            plan.milestones.forEach { milestone ->
+                milestone.tasks.forEach { task ->
+                    if (!task.completed) {
+                        Row(modifier = Modifier.padding(horizontal = 4.dp)) {
+                            Text(
+                                text = task.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (plan.completed) Color.Gray else Color.Black
+                            )
+                            Checkbox(
+                                checked = task.completed,
+                                modifier = Modifier.alignByBaseline(),
+                                onCheckedChange = {
+                                    toggleCompleted(task)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

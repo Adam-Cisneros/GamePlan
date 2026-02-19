@@ -33,6 +33,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.twig.gameplan.ui.theme.GamePlanTheme
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun GroupScreen(
@@ -104,10 +106,9 @@ fun GroupCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Plans",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.Black
+                        GroupPlans(
+                            group,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -126,6 +127,47 @@ fun GroupName(
         style = MaterialTheme.typography.titleLarge,
         modifier = modifier,
     )
+}
+
+@Composable
+fun GroupPlans(
+    group: Group,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.padding(top = 8.dp)) {
+        Text(
+            text = "Plans",
+            style = MaterialTheme.typography.titleLarge,
+            color = Color.Black
+        )
+        group.plans.forEach { plan ->
+            // Calculate overall progress for the plan
+            val allTasks = plan.milestones.flatMap { it.tasks }
+            val completedTasks = allTasks.count { it.completed }
+            val totalTasks = allTasks.size
+            val progress = if (totalTasks > 0) {
+                completedTasks.toFloat() / totalTasks.toFloat()
+            } else {
+                0f
+            }
+
+            // Display the plan title and its progress bar
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                Text(
+                    text = plan.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                )
+            }
+        }
+    }
 }
 
 @Preview(showBackground = true)

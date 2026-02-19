@@ -12,7 +12,12 @@ class GamePlanViewModel : ViewModel() {
     val planList = mutableStateListOf<Plan>()
     val taskList = mutableStateListOf<Task>()
     val groupList = mutableStateListOf<Group>()
-    val tagList = mutableStateListOf<String>("Study", "Fun", "Work", "Food")
+    val milestoneList = mutableStateListOf<Milestone>(
+        Milestone("Alpha"),
+        Milestone("Beta"),
+        Milestone("V 1.0"),
+    )
+    val tagList = mutableStateListOf<String>()
 
     init {
         createTestPlans(10)
@@ -72,7 +77,6 @@ class GamePlanViewModel : ViewModel() {
                     }
                 else -> "??"
             }
-            val tags = tagList.slice((i%2)..(1+i%3))
             val due = if (i%5 == 4) Date() else null
 
             addTask(Task(title = title, body = body, due = due))
@@ -110,14 +114,6 @@ class GamePlanViewModel : ViewModel() {
         return newPlan
     }
 
-    fun setDueDate(plan: Plan, dueDate: Date?) : Plan {
-        val index = planList.indexOf(plan)
-        val newPlan = plan
-            .copy(due = dueDate)
-        planList[index] = newPlan
-        return newPlan
-    }
-
     fun createTestPlans(numPlans: Int = 10) {
         // Add plans for testing purposes
         for (i in 1..numPlans) {
@@ -127,10 +123,9 @@ class GamePlanViewModel : ViewModel() {
                 1 -> "description of plan $i"
                 else -> "??"
             }
-            val tags = tagList.slice((i%2)..(1+i%3))
-            val due = if (i%5 == 4) Date() else null
+            val milestones = milestoneList.slice(0..i%3)
 
-            addPlan(Plan(title = title, body = body, due = due, tags = tags))
+            addPlan(Plan(title = title, body = body, milestones = milestones))
         }
     }
 
