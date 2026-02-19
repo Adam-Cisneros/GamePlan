@@ -18,8 +18,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHost
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -37,9 +37,6 @@ sealed class Routes {
     data class PlanDetail(val planId: String)
 
     @Serializable
-    data class TaskDetail(val taskId: String)
-
-    @Serializable
     data object Group
 
     @Serializable
@@ -53,70 +50,111 @@ fun GamePlanApp(
 ) {
     var showConfirmationDialog by rememberSaveable { mutableStateOf(false) }
     var showPlanDialog by rememberSaveable { mutableStateOf(false) }
+    var showTaskDialog by rememberSaveable { mutableStateOf(false) }
+    var showGroupDialog by rememberSaveable { mutableStateOf(false) }
+    var taskToEdit by rememberSaveable { mutableStateOf<Task?>(null) }
     val navController = rememberNavController()
-    Scaffold(
-        topBar = {
-            GamePlanTopBar(
-                canNavigateBack = false,
-                canDeleteTasks = model.completedTasksExist
-            )
-        },
-        floatingActionButton = {
-            TSFloatingActionButton(
-                onClick = { showPlanDialog = true },
-                imageVector = Icons.Default.Add
-            )
-        },
-        bottomBar = { BottomNav(navController = navController) }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Routes.Plans, // Your starting screen
-            modifier = Modifier.padding(innerPadding) // Apply padding from the Scaffold
-        ) {
-            composable<Routes.Plans> {
+
+    NavHost(
+        navController = navController,
+        startDestination = Routes.Plans, // Your starting screen
+    ) {
+        composable<Routes.Plans> {
+            Scaffold(
+                topBar = {
+                    GamePlanTopBar(
+                        canNavigateBack = false,
+                        canDeleteTasks = model.completedTasksExist
+                    )
+                },
+                floatingActionButton = {
+                    TSFloatingActionButton(
+                        onClick = { showPlanDialog = true },
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Plan"
+                    )
+                },
+                bottomBar = { BottomNav(navController = navController) }
+            ) { innerPadding ->
                 PlanScreen(
                     model = model,
                     onSelectPlan = { plan ->
                         navController.navigate(Routes.PlanDetail(plan.id.toString()))
-                    }
+                    },
+                    modifier = Modifier.padding(innerPadding)
                 )
             }
+        }
 
-            composable<Routes.ToDo> {
+        composable<Routes.ToDo> {
+            Scaffold(
+                topBar = {
+                    GamePlanTopBar(
+                        canNavigateBack = false,
+                        canDeleteTasks = model.completedTasksExist
+                    )
+                },
+                floatingActionButton = {
+                    TSFloatingActionButton(
+                        onClick = {
+                            taskToEdit = null
+                            showTaskDialog = true
+                        },
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Task"
+                    )
+                },
+                bottomBar = { BottomNav(navController = navController) }
+            ) { innerPadding ->
                 ToDoScreen(
                     model = model,
                     onSelectTask = { task ->
-                        navController.navigate(Routes.TaskDetail(task.id.toString()))
-                    }
+                        taskToEdit = task
+                        showTaskDialog = true
+                    },
+                    modifier = Modifier.padding(innerPadding)
                 )
             }
+        }
 
-            composable<Routes.PlanDetail> { backStackEntry ->
-                val planDetail: Routes.PlanDetail = backStackEntry.toRoute()
-                PlanDetail(planId = planDetail.planId)
-            }
+        composable<Routes.PlanDetail> { backStackEntry ->
+            val planDetail: Routes.PlanDetail = backStackEntry.toRoute()
+            PlanDetail(planId = planDetail.planId)
+        }
 
-            composable<Routes.TaskDetail> { backStackEntry ->
-                val taskDetail: Routes.TaskDetail = backStackEntry.toRoute()
-                TaskDetail(taskId = taskDetail.taskId)
-            }
-
-            composable<Routes.Group> {
+        composable<Routes.Group> {
+            Scaffold(
+                topBar = {
+                    GamePlanTopBar(
+                        canNavigateBack = false,
+                        canDeleteTasks = model.completedTasksExist
+                    )
+                },
+                floatingActionButton = {
+                    TSFloatingActionButton(
+                        onClick = { showGroupDialog = true },
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Group"
+                    )
+                },
+                bottomBar = { BottomNav(navController = navController) }
+            ) { innerPadding ->
                 GroupScreen(
                     model = model,
                     onSelectGroup = { group ->
                         navController.navigate(Routes.GroupDetail(group.id.toString()))
-                    }
+                    },
+                    modifier = Modifier.padding(innerPadding)
                 )
             }
+        }
 
-            composable<Routes.GroupDetail> { backStackEntry ->
-                val groupDetail: Routes.GroupDetail = backStackEntry.toRoute()
-                GroupDetail(groupId = groupDetail.groupId)
-            }
+        composable<Routes.GroupDetail> { backStackEntry ->
+            val groupDetail: Routes.GroupDetail = backStackEntry.toRoute()
+            GroupDetail(groupId = groupDetail.groupId)
         }
     }
+
 
     if (showConfirmationDialog) {
         DeleteConfirmationDialog(
@@ -136,10 +174,29 @@ fun GamePlanApp(
             modifier = Modifier.fillMaxSize(0.9f)
         )
     }
+
+    if (showTaskDialog) {
+        AddTaskDialog(
+            taskToEdit = taskToEdit,
+            onDismiss = { showTaskDialog = false },
+            modifier = Modifier.fillMaxSize(0.9f)
+        )
+    }
+
+    if (showGroupDialog) {
+        AddGroupDialog(
+            onDismiss = { showGroupDialog = false },
+            modifier = Modifier.fillMaxSize(0.9f)
+        )
+    }
 }
 
 @Composable
-fun TSFloatingActionButton(onClick: () -> Unit, imageVector: ImageVector) {
+fun TSFloatingActionButton(
+    onClick: () -> Unit,
+    imageVector: ImageVector,
+    contentDescription: String
+) {
     FloatingActionButton(
         onClick = onClick,
         containerColor = MaterialTheme.colorScheme.primary,
@@ -147,7 +204,7 @@ fun TSFloatingActionButton(onClick: () -> Unit, imageVector: ImageVector) {
     ) {
         Icon(
             imageVector = imageVector,
-            contentDescription = "Add Task"
+            contentDescription = contentDescription
         )
     }
 }

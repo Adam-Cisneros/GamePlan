@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -111,6 +112,14 @@ fun GroupCard(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    Button(
+                        onClick = {
+                            onClick(group)
+                        },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Text("Open Group")
+                    }
                 }
             }
         }
@@ -152,7 +161,7 @@ fun GroupPlans(
             }
 
             // Display the plan title and its progress bar
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Row(modifier = Modifier.padding(horizontal = 4.dp)) {
                 Text(
                     text = plan.title,
                     style = MaterialTheme.typography.bodyLarge,

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
@@ -126,10 +127,24 @@ fun TaskCard(
                             )
                         }
                     }
-                    TaskBody(
-                        task,
-                        modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 0.dp)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TaskBody(
+                            task,
+                            modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 0.dp)
+                        )
+                        IconButton(onClick = {
+                            onClick(task)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Task"
+                            )
+                        }
+                    }
                 }
             }
         }

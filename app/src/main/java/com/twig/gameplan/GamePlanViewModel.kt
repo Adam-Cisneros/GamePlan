@@ -1,7 +1,9 @@
 package com.twig.gameplan
 
 import android.util.Log
+import androidx.compose.animation.core.copy
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.graphics.vector.group
 import androidx.lifecycle.ViewModel
 import com.twig.gameplan.Plan
 import java.util.Calendar
@@ -17,20 +19,35 @@ class GamePlanViewModel : ViewModel() {
         Milestone("Beta"),
         Milestone("V 1.0"),
     )
-    val tagList = mutableStateListOf<String>()
+    val stageList = mutableStateListOf<String>(
+        "To Do",
+        "In Progress",
+        "In Review",
+        "Done"
+    )
 
     init {
+        createTestGroups(10)
         createTestPlans(10)
         createTestTasks(10)
-        createTestGroups(10)
     }
 
     fun findTaskById(id: String) : Task? {
         return taskList.find {it.id.toString() == id }
     }
 
-    fun addTask(task: Task) {
+    fun addTask(task: Task, plan: Plan) {
         taskList.add(0, task)
+
+        val planIndex = planList.indexOf(plan)
+        val milestoneIndex = plan.milestones.indexOf(task.milestone)
+        if (planIndex != -1 && milestoneIndex != -1) {
+            val newTasks = plan.milestones[milestoneIndex].tasks + task // Creates a new list with the new task
+            val updatedPlan = plan.copy(milestones = plan.milestones.toMutableList().apply {
+                set(milestoneIndex, Milestone(plan.milestones[milestoneIndex].title, newTasks))
+            })
+            planList[planIndex] = updatedPlan
+        }
     }
 
     fun deleteTask(task: Task) {
@@ -45,6 +62,10 @@ class GamePlanViewModel : ViewModel() {
         taskList.removeIf { it.completed }
     }
 
+    fun updateTask(task: Task) {
+        val index = taskList.indexOf(task)
+        taskList[index] = task
+    }
 
     fun toggleTaskCompleted(task: Task) : Task {
         // Observer of MutableList not notified when changing a property, so
@@ -77,9 +98,11 @@ class GamePlanViewModel : ViewModel() {
                     }
                 else -> "??"
             }
+            val plan = planList[i%planList.size]
+            val milestone = milestoneList[i%milestoneList.size]
             val due = if (i%5 == 4) Date() else null
 
-            addTask(Task(title = title, body = body, due = due))
+            addTask(Task(title = title, body = body, due = due, plan = plan, milestone = milestone), planList[i%planList.size])
         }
     }
 
@@ -87,8 +110,15 @@ class GamePlanViewModel : ViewModel() {
         return planList.find {it.id.toString() == id }
     }
 
-    fun addPlan(plan: Plan) {
+    fun addPlan(plan: Plan, group: Group) {
         planList.add(0, plan)
+
+        val groupIndex = groupList.indexOf(group)
+        if (groupIndex != -1) {
+            val newPlans = group.plans + plan // Creates a new list with the new plan
+            val updatedGroup = group.copy(plans = newPlans)
+            groupList[groupIndex] = updatedGroup
+        }
     }
 
     fun deletePlan(plan: Plan) {
@@ -125,7 +155,7 @@ class GamePlanViewModel : ViewModel() {
             }
             val milestones = milestoneList.slice(0..i%3)
 
-            addPlan(Plan(title = title, body = body, milestones = milestones))
+            addPlan(Plan(title = title, body = body, milestones = milestones), groupList[i%groupList.size])
         }
     }
 

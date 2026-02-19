@@ -1,5 +1,6 @@
 package com.twig.gameplan
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,13 +17,21 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,11 +80,13 @@ fun PlanCard(
     onClick: (Plan) -> Unit = {},
     toggleC: (Task) -> Unit = {}
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier
             .padding(8.dp)
             .clickable(onClick = {
-                onClick(plan)
+                expanded = !expanded
             }),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -92,6 +103,13 @@ fun PlanCard(
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // IconButton to toggle the expanded state
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (expanded) "Collapse" else "Expand"
+                    )
+                }
                 PlanTitle(plan,
                     modifier = Modifier.weight(1f))
                 Checkbox(
@@ -102,19 +120,31 @@ fun PlanCard(
                     })
 
             }
-            PlanBody(
-                plan,
-                modifier = Modifier.padding(16.dp, 0.dp)
-            )
-            PlanProgress(
-                plan,
-                modifier = Modifier.padding(16.dp, 0.dp)
-            )
-            PlanTodo(
-                plan,
-                modifier = Modifier.padding(16.dp, 0.dp),
-                toggleCompleted = toggleC
-            )
+            AnimatedVisibility(visible = expanded) {
+                Column {
+                    PlanBody(
+                        plan,
+                        modifier = Modifier.padding(16.dp, 0.dp)
+                    )
+                    PlanProgress(
+                        plan,
+                        modifier = Modifier.padding(16.dp, 0.dp)
+                    )
+                    PlanTodo(
+                        plan,
+                        modifier = Modifier.padding(16.dp, 0.dp),
+                        toggleCompleted = toggleC
+                    )
+                    Button(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        onClick = {
+                            onClick(plan)
+                        }
+                    ) {
+                        Text("Open Plan")
+                    }
+                }
+            }
         }
     }
 }
@@ -210,18 +240,23 @@ fun PlanTodo(
             plan.milestones.forEach { milestone ->
                 milestone.tasks.forEach { task ->
                     if (!task.completed) {
-                        Row(modifier = Modifier.padding(horizontal = 4.dp)) {
-                            Text(
-                                text = task.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (plan.completed) Color.Gray else Color.Black
-                            )
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .align(Alignment.Start),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Checkbox(
                                 checked = task.completed,
                                 modifier = Modifier.alignByBaseline(),
                                 onCheckedChange = {
                                     toggleCompleted(task)
                                 }
+                            )
+                            Text(
+                                text = task.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (plan.completed) Color.Gray else Color.Black
                             )
                         }
                     }

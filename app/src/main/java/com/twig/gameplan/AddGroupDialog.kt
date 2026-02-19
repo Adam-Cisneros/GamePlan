@@ -48,17 +48,14 @@ import androidx.compose.ui.text.input.ImeAction
 import com.twig.gameplan.ui.theme.GamePlanTheme
 
 @Composable
-fun AddPlanDialog(
+fun AddGroupDialog(
     onDismiss: () -> Unit,
     model: GamePlanViewModel = viewModel<GamePlanViewModel>(),
     modifier: Modifier = Modifier
 ) {
-    var planTitle by rememberSaveable { mutableStateOf("") }
-    var planBody by rememberSaveable { mutableStateOf("") }
-    var milestoneText by rememberSaveable { mutableStateOf("") }
-    var planGroup by rememberSaveable { mutableStateOf<Group?>(null) }
-    var planMilestones by rememberSaveable { mutableStateOf(listOf<Milestone>()) }
-    var planSprintLength by rememberSaveable { mutableStateOf<Int?>(null) }
+    var groupName by rememberSaveable { mutableStateOf("") }
+    var groupDescription by rememberSaveable { mutableStateOf("") }
+    var groupPlans by rememberSaveable { mutableStateOf(listOf<Plan>()) }
 
     Dialog(
         onDismissRequest = {
@@ -76,49 +73,24 @@ fun AddPlanDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
-                PlanTextInput(
-                    planTitle,
-                    label = "Enter plan title",
-                    onValueChange = { planTitle = it },
+                GroupTextInput(
+                    groupName,
+                    label = "Enter group name",
+                    onValueChange = { groupName = it },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 1
                 )
-                PlanTextInput(
-                    planBody,
-                    label = "Enter detailed description",
-                    onValueChange = { planBody = it },
+                GroupTextInput(
+                    groupDescription,
+                    label = "Enter detailed description (Optional)",
+                    onValueChange = { groupDescription = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                 )
-                PlanMilestoneInput(
-                    text = milestoneText,
-                    label = "Enter milestone",
-                    onValueChange = { milestoneText = it },
-                    onAdd = {
-                        if (milestoneText.isNotBlank()) {
-                            planMilestones = planMilestones + Milestone(
-                                title = milestoneText,
-                                tasks = emptyList()
-                            )
-                            milestoneText = "" // Clear text after adding
-                        }
-                    },
-                    milestones = planMilestones,
-                    onRemove = { milestoneToRemove ->
-                        planMilestones = planMilestones.filterNot { it == milestoneToRemove }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                )
-                PlanGroupInput(
-                    groups = model.groupList,
-                    onGroupChange = { planGroup = it },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                PlanSprintLengthInput(
-                    sprintLength = planSprintLength,
-                    onValueChange = { planSprintLength = it },
+                GroupPlanInput(
+                    plans = model.planList,
+                    onPlanChange = { groupPlans = groupPlans + it },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -136,26 +108,21 @@ fun AddPlanDialog(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         ), onClick = {
-                            Plan(
-                                title = planTitle,
-                                body = planBody,
-                                group = planGroup,
-                                milestones = planMilestones,
-                                sprintLength = planSprintLength!!
+                            Group(
+                                name = groupName,
+                                description = groupDescription,
+                                plans = groupPlans
                             )
-                            model.addPlan(
-                                Plan(
-                                    title = planTitle,
-                                    body = planBody,
-                                    group = planGroup,
-                                    milestones = planMilestones,
-                                    sprintLength = planSprintLength!!
-                                ),
-                                planGroup!!
+                            model.addGroup(
+                                Group(
+                                    name = groupName,
+                                    description = groupDescription,
+                                    plans = groupPlans
+                                )
                             )
                             onDismiss()
                         }) {
-                        Text("Add Plan")
+                        Text("Add Group")
                     }
                 }
             }
@@ -165,7 +132,7 @@ fun AddPlanDialog(
 }
 
 @Composable
-fun PlanTextInput(
+fun GroupTextInput(
     text: String,
     label: String = "Enter text",
     onValueChange: (String) -> Unit,
@@ -183,63 +150,14 @@ fun PlanTextInput(
     )
 }
 
-@Composable
-fun PlanMilestoneInput(
-    text: String,
-    label: String = "Enter text",
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    onAdd: () -> Unit,
-    milestones: List<Milestone>,
-    onRemove: (Milestone) -> Unit
-) {
-    val keyboardController = LocalSoftwareKeyboardController.current
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                modifier = Modifier.weight(1f),
-                value = text,
-                onValueChange = onValueChange,
-                label = { Text(label) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    onAdd()
-                    keyboardController?.hide()
-                })
-            )
-        }
-
-        FlowRow(
-            modifier = Modifier.padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            milestones.forEach { milestone ->
-                InputChip(
-                    selected = false,
-                    onClick = { /* Not used */ },
-                    label = { Text(milestone.title) },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Remove milestone",
-                            modifier = Modifier.clickable { onRemove(milestone) }
-                        )
-                    }
-                )
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlanGroupInput(
-    groups: List<Group>,
-    onGroupChange: (Group) -> Unit,
+fun GroupPlanInput(
+    plans: List<Plan>,
+    onPlanChange: (Plan) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedGroup by rememberSaveable { mutableStateOf<Group?>(null) }
+    var selectedPlan by rememberSaveable { mutableStateOf<Plan?>(null) }
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
@@ -248,7 +166,7 @@ fun PlanGroupInput(
         modifier = modifier // This already gets .fillMaxWidth()
     ) {
         OutlinedTextField(
-            value = selectedGroup?.name ?: "Select a group",
+            value = selectedPlan?.title ?: "Select plans to connect (Optional)",
             onValueChange = {},
             readOnly = true,
             trailingIcon = {
@@ -265,12 +183,12 @@ fun PlanGroupInput(
             onDismissRequest = { expanded = false },
             modifier = Modifier.exposedDropdownSize() // This ensures the dropdown matches the text field width
         ) {
-            groups.forEach { group ->
+            plans.forEach { plan ->
                 DropdownMenuItem(
-                    text = { Text(group.name) },
+                    text = { Text(plan.title) },
                     onClick = {
-                        selectedGroup = group
-                        onGroupChange(group)
+                        selectedPlan = plan
+                        onPlanChange(plan)
                         expanded = false
                     },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
@@ -280,39 +198,14 @@ fun PlanGroupInput(
     }
 }
 
-@Composable
-fun PlanSprintLengthInput(
-    label: String = "Sprint Length (Days)",
-    sprintLength: Int?,
-    onValueChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OutlinedTextField(
-            label = { Text(label) },
-            singleLine = true,
-            value = if (sprintLength != null) sprintLength.toString() else "",
-            onValueChange = {
-                onValueChange(it.toIntOrNull() ?: 0)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(6.dp)
-        )
-    }
-}
-
 @Preview(
     heightDp = 800,
     widthDp = 450
 )
 @Composable
-fun PreviewAddPlan() {
+fun PreviewAddGroup() {
     GamePlanTheme {
-        AddPlanDialog(
+        AddGroupDialog(
             onDismiss = { },
             modifier = Modifier.fillMaxSize(0.9f)
         )

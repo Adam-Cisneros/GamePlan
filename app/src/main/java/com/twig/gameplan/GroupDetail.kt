@@ -5,5 +5,5 @@ import androidx.compose.runtime.Composable
 
 @Composable
 fun GroupDetail(groupId: String) {
-    Text(text = "Details for Plan ID: $groupId")
+    Text(text = "Details for Group ID: $groupId")
 }
