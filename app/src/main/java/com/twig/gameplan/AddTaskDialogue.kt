@@ -57,33 +57,36 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 
 @Composable
 fun AddTaskDialog(
     onDismiss: () -> Unit,
     taskToEdit: Task?, // Accept a nullable Task object
-    model: GamePlanViewModel = viewModel<GamePlanViewModel>(),
+    model: GamePlanViewModel,
     modifier: Modifier = Modifier
 ) {
-    // Initialize state, checking if we are editing a task
     var taskTitle by remember(taskToEdit) { mutableStateOf(taskToEdit?.title ?: "") }
     var taskBody by remember(taskToEdit) { mutableStateOf(taskToEdit?.body ?: "") }
-    var taskMilestone by remember(taskToEdit) { mutableStateOf(taskToEdit?.milestone) }
-    var taskPlan by remember(taskToEdit) { mutableStateOf(taskToEdit?.plan) }
+    var taskMilestone by remember(taskToEdit) { mutableStateOf(taskToEdit?.milestoneTitle) }
+
+    // 1. Initialize as null; we will populate it from the 'plans' list
+    var taskPlan by remember { mutableStateOf<Plan?>(null) }
     var taskDue by remember(taskToEdit) { mutableStateOf(taskToEdit?.due) }
 
     var showDateModal by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(key1 = taskToEdit) {
-        if (taskToEdit != null) {
-            taskTitle = taskToEdit.title
-            taskBody = taskToEdit.body ?: ""
-            taskMilestone = taskToEdit.milestone
-            taskPlan = taskToEdit.plan
-            taskDue = taskToEdit.due
+    // 2. Observe all plans (this is already correctly done in your file)
+    val plans by model.allPlans.collectAsState(initial = emptyList())
+
+    // 3. Use LaunchedEffect to set the initial plan once 'plans' list is loaded
+    LaunchedEffect(taskToEdit, plans) {
+        if (taskToEdit != null && taskPlan == null) {
+            taskPlan = plans.find { it.id == taskToEdit.planId }
         }
     }
-
 
     Dialog(
         onDismissRequest = {
@@ -118,7 +121,7 @@ fun AddTaskDialog(
                         .weight(1f)
                 )
                 TaskPlanInput(
-                    plans = model.planList,
+                    plans = model.allPlans.collectAsState(initial = emptyList()).value,
                     selectedPlan = taskPlan,
                     onPlanChange = { taskPlan = it },
                     modifier = Modifier.fillMaxWidth()
@@ -126,7 +129,7 @@ fun AddTaskDialog(
                 TaskMilestoneInput(
                     selectedMilestone = taskMilestone,
                     onMilestoneChange = { taskMilestone = it },
-                    milestones = taskPlan?.milestones ?: emptyList<Milestone>(),
+                    milestones = taskPlan?.milestones ?: emptyList<String>(),
                     modifier = Modifier.fillMaxWidth()
                 )
                 TaskDateField(
@@ -160,19 +163,18 @@ fun AddTaskDialog(
                                     Task(
                                         title = taskTitle,
                                         body = taskBody,
-                                        plan = taskPlan,
-                                        milestone = taskMilestone,
+                                        planId = taskPlan?.id,
+                                        milestoneTitle = taskMilestone,
                                         due = taskDue
-                                    ),
-                                    taskPlan!!
+                                    )
                                 )
                             } else {
                                 // Update existing task
                                 val updatedTask = taskToEdit.copy(
                                     title = taskTitle,
                                     body = taskBody,
-                                    plan = taskPlan,
-                                    milestone = taskMilestone,
+                                    planId = taskPlan?.id,
+                                    milestoneTitle = taskMilestone,
                                     due = taskDue
                                 )
                                 model.updateTask(updatedTask)
@@ -221,10 +223,10 @@ fun TaskTextInput(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskMilestoneInput(
-    onMilestoneChange: (Milestone) -> Unit,
+    onMilestoneChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    milestones: List<Milestone>,
-    selectedMilestone: Milestone? // Pass in the selected milestone
+    milestones: List<String>,
+    selectedMilestone: String? // Pass in the selected milestone
 ) {
     var currentSelectedMilestone by remember(selectedMilestone) { mutableStateOf(selectedMilestone) }
     var expanded by remember { mutableStateOf(false) }
@@ -235,7 +237,7 @@ fun TaskMilestoneInput(
         modifier = modifier // This already gets .fillMaxWidth()
     ) {
         OutlinedTextField(
-            value = currentSelectedMilestone?.title ?: "Select a milestone",
+            value = currentSelectedMilestone ?: "Select a milestone",
             onValueChange = {},
             readOnly = true,
             trailingIcon = {
@@ -254,7 +256,7 @@ fun TaskMilestoneInput(
         ) {
             milestones.forEach { milestone ->
                 DropdownMenuItem(
-                    text = { Text(milestone.title) },
+                    text = { Text(milestone) },
                     onClick = {
                         currentSelectedMilestone = milestone
                         onMilestoneChange(milestone)
@@ -369,43 +371,5 @@ fun DatePickerModal(
         }
     ) {
         DatePicker(state = datePickerState)
-    }
-}
-
-@Preview(
-    heightDp = 800,
-    widthDp = 450
-)
-@Composable
-fun PreviewAddTask() {
-    GamePlanTheme {
-        AddTaskDialog(
-            taskToEdit = null, // Preview for adding a new task
-            onDismiss = { },
-            modifier = Modifier.fillMaxSize(0.9f)
-        )
-    }
-}
-
-@Preview(
-    heightDp = 800,
-    widthDp = 450
-)
-@Composable
-fun PreviewEditTask() {
-    val testPlan = Plan(title = "Test Plan", sprintLength = 2, milestones = listOf(Milestone(title = "Test Milestone", tasks = emptyList())))
-    val testTask = Task(
-        title = "Test Task Title",
-        body = "This is a detailed description.",
-        plan = testPlan,
-        milestone = testPlan.milestones.first(),
-        due = Date()
-    )
-    GamePlanTheme {
-        AddTaskDialog(
-            taskToEdit = testTask, // Preview for editing an existing task
-            onDismiss = { },
-            modifier = Modifier.fillMaxSize(0.9f)
-        )
     }
 }

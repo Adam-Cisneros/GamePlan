@@ -28,7 +28,7 @@ fun GamePlanTopBar(
     onUpClick: () -> Unit = { },
     canDeleteTasks: Boolean = false,
     onDeleteAction: () -> Unit = {},
-    model: GamePlanViewModel = viewModel<GamePlanViewModel>(),
+    model: GamePlanViewModel,
 ) {
     TopAppBar(
         title = { Text(
@@ -59,7 +59,7 @@ fun GamePlanTopBar(
             if (canDeleteTasks) {
                 IconButton(
                     onClick = onDeleteAction,
-                    enabled = model.completedPlansExist,
+                    enabled = true,
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
@@ -69,17 +69,4 @@ fun GamePlanTopBar(
             }
         }
     )
-}
-
-@Preview
-@Composable
-fun TSAppBarPreview() {
-    GamePlanTheme {
-        Scaffold(
-            topBar = { GamePlanTopBar() }
-        ) {
-                innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding))
-        }
-    }
 }

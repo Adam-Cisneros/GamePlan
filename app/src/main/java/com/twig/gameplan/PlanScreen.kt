@@ -43,21 +43,25 @@ import com.twig.gameplan.ui.theme.GamePlanTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.runtime.collectAsState
 
 
 @Composable
 fun PlanScreen(
     modifier: Modifier = Modifier,
     onSelectPlan: (Plan) -> Unit = {},
-    model: GamePlanViewModel = viewModel<GamePlanViewModel>()
+    model: GamePlanViewModel
 ) {
+    val planList by model.allPlans.collectAsState(initial = emptyList())
+
     LazyColumn(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        items(model.planList) { plan ->
+        items(planList) { plan ->
             PlanCard(
                 plan = plan,
+                model = model,
                 toggleCompleted = {
                     model.togglePlanCompleted(it)
                 },
@@ -65,7 +69,7 @@ fun PlanScreen(
                     onSelectPlan(it)
                 },
                 toggleC = {
-                    model.toggleTaskCompleted(it)
+                    model.updateTask(it.copy(completed = !it.completed))
                 }
             )
         }
@@ -74,8 +78,9 @@ fun PlanScreen(
 
 @Composable
 fun PlanCard(
-    plan: Plan,
     modifier: Modifier = Modifier,
+    plan: Plan,
+    model: GamePlanViewModel,
     toggleCompleted: (Plan) -> Unit = {},
     onClick: (Plan) -> Unit = {},
     toggleC: (Task) -> Unit = {}
@@ -127,12 +132,14 @@ fun PlanCard(
                         modifier = Modifier.padding(16.dp, 0.dp)
                     )
                     PlanProgress(
-                        plan,
-                        modifier = Modifier.padding(16.dp, 0.dp)
+                        modifier = Modifier.padding(16.dp, 0.dp),
+                        plan = plan,
+                        model = model
                     )
                     PlanTodo(
-                        plan,
                         modifier = Modifier.padding(16.dp, 0.dp),
+                        plan = plan,
+                        model = model,
                         toggleCompleted = toggleC
                     )
                     Button(
@@ -185,10 +192,13 @@ fun PlanBody(
 
 @Composable
 fun PlanProgress(
+    modifier: Modifier = Modifier,
     plan: Plan,
-    modifier: Modifier = Modifier
+    model: GamePlanViewModel,
 ) {
-    if (plan.milestones.isNotEmpty()) {
+    val tasks by model.getTasksByPlan(plan.id).collectAsState(initial = emptyList())
+
+    if (tasks.isNotEmpty()) {
         Column(modifier = modifier) {
             Text(
                 text = "Progress",
@@ -197,10 +207,10 @@ fun PlanProgress(
             )
             plan.milestones.forEach { milestone ->
                 // Calculate the progress for each milestone
-                val completedTasks = milestone.tasks.count { it.completed }
-                val totalTasks = milestone.tasks.size
-                val progress = if (totalTasks > 0) {
-                    completedTasks.toFloat() / totalTasks.toFloat()
+                val completedTasks = tasks.count { it.milestoneTitle == milestone && it.completed }
+                val totalTasksInMilestone = tasks.count { it.milestoneTitle == milestone }
+                val progress = if (totalTasksInMilestone > 0) {
+                    completedTasks.toFloat() / totalTasksInMilestone.toFloat()
                 } else {
                     0f
                 }
@@ -208,7 +218,7 @@ fun PlanProgress(
                 // Display the milestone title and its progress bar
                 Row(modifier = Modifier.padding(horizontal = 4.dp)) {
                     Text(
-                        text = milestone.title,
+                        text = milestone,
                         style = MaterialTheme.typography.titleMedium,
                         color = if (plan.completed) Color.Gray else Color.Black
                     )
@@ -226,80 +236,43 @@ fun PlanProgress(
 
 @Composable
 fun PlanTodo(
-    plan: Plan,
     modifier: Modifier = Modifier,
+    plan: Plan,
+    model: GamePlanViewModel,
     toggleCompleted: (Task) -> Unit = {},
 ) {
-    if (plan.milestones.isNotEmpty()) {
+    val tasks by model.getTasksByPlan(plan.id).collectAsState(initial = emptyList())
+
+    if (tasks.isNotEmpty()) {
         Column(modifier = modifier) {
             Text(
                 text = "To Do",
                 style = MaterialTheme.typography.titleLarge,
                 color = if (plan.completed) Color.Gray else Color.Black
             )
-            plan.milestones.forEach { milestone ->
-                milestone.tasks.forEach { task ->
-                    if (!task.completed) {
-                        Row(
-                            modifier = Modifier
-                                .padding(horizontal = 4.dp)
-                                .align(Alignment.Start),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = task.completed,
-                                modifier = Modifier.alignByBaseline(),
-                                onCheckedChange = {
-                                    toggleCompleted(task)
-                                }
-                            )
-                            Text(
-                                text = task.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (plan.completed) Color.Gray else Color.Black
-                            )
-                        }
+            tasks.forEach { task ->
+                if (!task.completed) {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .align(Alignment.Start),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = task.completed,
+                            modifier = Modifier.alignByBaseline(),
+                            onCheckedChange = {
+                                toggleCompleted(task)
+                            }
+                        )
+                        Text(
+                            text = task.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (plan.completed) Color.Gray else Color.Black
+                        )
                     }
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PlanScreenPreview() {
-    val todoViewModel = viewModel<GamePlanViewModel>()
-
-    if (todoViewModel.planList.isEmpty())
-        todoViewModel.createTestTasks(50)
-
-    GamePlanTheme {
-        PlanScreen(
-            modifier = Modifier
-                .height(800.dp)
-                .width(450.dp),
-            model = todoViewModel
-        )
-    }
-}
-
-@Preview(showBackground = true,
-    heightDp = 450,
-    widthDp = 800)
-@Composable
-fun PlanScreenLandscapePreview() {
-    val todoViewModel = viewModel<GamePlanViewModel>()
-
-    if (todoViewModel.planList.isEmpty())
-        todoViewModel.createTestTasks(50)
-
-    GamePlanTheme {
-        PlanScreen(
-            modifier = Modifier
-                .height(450.dp)
-                .width(800.dp),
-            model = todoViewModel
-        )
     }
 }

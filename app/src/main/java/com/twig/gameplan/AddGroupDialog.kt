@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -50,7 +51,7 @@ import com.twig.gameplan.ui.theme.GamePlanTheme
 @Composable
 fun AddGroupDialog(
     onDismiss: () -> Unit,
-    model: GamePlanViewModel = viewModel<GamePlanViewModel>(),
+    model: GamePlanViewModel,
     modifier: Modifier = Modifier
 ) {
     var groupName by rememberSaveable { mutableStateOf("") }
@@ -89,7 +90,7 @@ fun AddGroupDialog(
                         .weight(1f)
                 )
                 GroupPlanInput(
-                    plans = model.planList,
+                    plans = model.allPlans.collectAsState(initial = emptyList()).value,
                     onPlanChange = { groupPlans = groupPlans + it },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -109,15 +110,13 @@ fun AddGroupDialog(
                             containerColor = MaterialTheme.colorScheme.primary
                         ), onClick = {
                             Group(
-                                name = groupName,
+                                title = groupName,
                                 description = groupDescription,
-                                plans = groupPlans
                             )
                             model.addGroup(
                                 Group(
-                                    name = groupName,
+                                    title = groupName,
                                     description = groupDescription,
-                                    plans = groupPlans
                                 )
                             )
                             onDismiss()
@@ -195,19 +194,5 @@ fun GroupPlanInput(
                 )
             }
         }
-    }
-}
-
-@Preview(
-    heightDp = 800,
-    widthDp = 450
-)
-@Composable
-fun PreviewAddGroup() {
-    GamePlanTheme {
-        AddGroupDialog(
-            onDismiss = { },
-            modifier = Modifier.fillMaxSize(0.9f)
-        )
     }
 }

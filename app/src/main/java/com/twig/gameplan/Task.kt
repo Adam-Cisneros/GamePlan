@@ -1,16 +1,28 @@
 package com.twig.gameplan
 
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.PrimaryKey
 import java.util.Date
 
-var lastTaskId = 0
-
+@Entity(
+    tableName = "tasks",
+    foreignKeys = [
+        ForeignKey(
+            entity = Plan::class,
+            parentColumns = ["id"],
+            childColumns = ["planId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
 data class Task(
-    val id: Int = lastTaskId++,
-    val title: String = "",
-    val body: String? = null,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val planId: Long? = null, // Link to Plan
+    val title: String,
     val due: Date? = null,
-    val completed: Boolean = false,
-    val milestone: Milestone? = null,
+    val body: String? = null,
     val stage: String = "To Do",
-    val plan: Plan? = null
+    val completed: Boolean = false,
+    val milestoneTitle: String? = null // Store milestone as string for simplicity
 )

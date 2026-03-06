@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.twig.gameplan.ui.theme.GamePlanTheme
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.text.font.FontWeight
 
 @Composable
@@ -43,13 +44,16 @@ fun GroupScreen(
     onSelectGroup: (Group) -> Unit = {},
     model: GamePlanViewModel
 ) {
+    val groupList by model.allGroups.collectAsState(initial = emptyList())
+
     LazyColumn(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        items(model.groupList) { group ->
+        items(groupList) { group ->
             GroupCard(
                 group = group,
+                model = model,
                 onClick = {
                     onSelectGroup(it)
                 }
@@ -60,8 +64,9 @@ fun GroupScreen(
 
 @Composable
 fun GroupCard(
-    group: Group,
     modifier: Modifier = Modifier,
+    group: Group,
+    model: GamePlanViewModel,
     onClick: (Group) -> Unit = {},
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -108,8 +113,9 @@ fun GroupCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         GroupPlans(
+                            modifier = Modifier.weight(1f),
                             group,
-                            modifier = Modifier.weight(1f)
+                            model = model
                         )
                     }
                     Button(
@@ -132,7 +138,7 @@ fun GroupName(
     modifier: Modifier = Modifier
 ) {
     Text(
-        text = group.name,
+        text = group.title,
         style = MaterialTheme.typography.titleLarge,
         modifier = modifier,
     )
@@ -140,20 +146,23 @@ fun GroupName(
 
 @Composable
 fun GroupPlans(
+    modifier: Modifier = Modifier,
     group: Group,
-    modifier: Modifier = Modifier
+    model: GamePlanViewModel,
 ) {
+    val plans by model.getPlansByGroup(group.id).collectAsState(initial = emptyList())
+
     Column(modifier = modifier.padding(top = 8.dp)) {
         Text(
             text = "Plans",
             style = MaterialTheme.typography.titleLarge,
             color = Color.Black
         )
-        group.plans.forEach { plan ->
+        plans.forEach { plan ->
             // Calculate overall progress for the plan
-            val allTasks = plan.milestones.flatMap { it.tasks }
-            val completedTasks = allTasks.count { it.completed }
-            val totalTasks = allTasks.size
+            val allTasksInPlan = model.getTasksByPlan(plan.id).collectAsState(initial = emptyList()).value
+            val completedTasks = allTasksInPlan.count { it.completed }
+            val totalTasks = allTasksInPlan.size
             val progress = if (totalTasks > 0) {
                 completedTasks.toFloat() / totalTasks.toFloat()
             } else {
@@ -176,23 +185,5 @@ fun GroupPlans(
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GroupScreenPreview() {
-    val todoViewModel = viewModel<GamePlanViewModel>()
-
-    if (todoViewModel.groupList.isEmpty())
-        todoViewModel.createTestGroups(50)
-
-    GamePlanTheme {
-        GroupScreen(
-            modifier = Modifier
-                .height(800.dp)
-                .width(450.dp),
-            model = todoViewModel
-        )
     }
 }

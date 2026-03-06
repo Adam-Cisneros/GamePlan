@@ -1,10 +1,11 @@
 package com.twig.gameplan
 
-var lastGroupId = 0
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
+@Entity(tableName = "groups")
 data class Group(
-    val id: Int = lastGroupId++,
-    val name: String = "",
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
     val description: String? = null,
-    val plans: List<Plan> = listOf()
 )

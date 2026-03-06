@@ -12,6 +12,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -46,7 +47,7 @@ sealed class Routes {
 // Make composable for Main App module
 @Composable
 fun GamePlanApp(
-    model: GamePlanViewModel = viewModel<GamePlanViewModel>()
+    model: GamePlanViewModel = viewModel(factory = GamePlanViewModel.Factory)
 ) {
     var showConfirmationDialog by rememberSaveable { mutableStateOf(false) }
     var showPlanDialog by rememberSaveable { mutableStateOf(false) }
@@ -64,7 +65,9 @@ fun GamePlanApp(
                 topBar = {
                     GamePlanTopBar(
                         canNavigateBack = false,
-                        canDeleteTasks = model.completedTasksExist
+                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
+                        onDeleteAction = { showConfirmationDialog = true },
+                        model = model
                     )
                 },
                 floatingActionButton = {
@@ -91,7 +94,9 @@ fun GamePlanApp(
                 topBar = {
                     GamePlanTopBar(
                         canNavigateBack = false,
-                        canDeleteTasks = model.completedTasksExist
+                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
+                        onDeleteAction = { showConfirmationDialog = true },
+                        model = model
                     )
                 },
                 floatingActionButton = {
@@ -119,7 +124,45 @@ fun GamePlanApp(
 
         composable<Routes.PlanDetail> { backStackEntry ->
             val planDetail: Routes.PlanDetail = backStackEntry.toRoute()
-            PlanDetail(planId = planDetail.planId)
+            Scaffold(
+                topBar = {
+                    GamePlanTopBar(
+                        canNavigateBack = true,
+                        onUpClick = { navController.navigateUp() },
+                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
+                        onDeleteAction = { showConfirmationDialog = true },
+                        model = model
+                    )
+                },
+                floatingActionButton = {
+                    TSFloatingActionButton(
+                        onClick = {
+                            taskToEdit = Task(
+                                planId = planDetail.planId.toLong(),
+                                title = "",
+                                due = null,
+                                body = null,
+                                stage = "To Do",
+                                completed = false,
+                            )
+                            showTaskDialog = true
+                        },
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Task"
+                    )
+                },
+                bottomBar = { BottomNav(navController = navController) }
+            ) { innerPadding ->
+                PlanDetail(
+                    modifier = Modifier.padding(innerPadding),
+                    planId = planDetail.planId.toLong(),
+                    onSelectTask = { task ->
+                        taskToEdit = task
+                        showTaskDialog = true
+                    },
+                    model = model
+                )
+            }
         }
 
         composable<Routes.Group> {
@@ -127,7 +170,9 @@ fun GamePlanApp(
                 topBar = {
                     GamePlanTopBar(
                         canNavigateBack = false,
-                        canDeleteTasks = model.completedTasksExist
+                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
+                        onDeleteAction = { showConfirmationDialog = true },
+                        model = model
                     )
                 },
                 floatingActionButton = {
@@ -171,6 +216,7 @@ fun GamePlanApp(
     if (showPlanDialog) {
         AddPlanDialog(
             onDismiss = { showPlanDialog = false },
+            model = model,
             modifier = Modifier.fillMaxSize(0.9f)
         )
     }
@@ -179,6 +225,7 @@ fun GamePlanApp(
         AddTaskDialog(
             taskToEdit = taskToEdit,
             onDismiss = { showTaskDialog = false },
+            model = model,
             modifier = Modifier.fillMaxSize(0.9f)
         )
     }
@@ -186,6 +233,7 @@ fun GamePlanApp(
     if (showGroupDialog) {
         AddGroupDialog(
             onDismiss = { showGroupDialog = false },
+            model = model,
             modifier = Modifier.fillMaxSize(0.9f)
         )
     }
