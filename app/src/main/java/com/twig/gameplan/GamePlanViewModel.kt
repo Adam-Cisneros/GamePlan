@@ -103,6 +103,10 @@ class GamePlanViewModel(
     }
 
     // --- Group Operations ---
+    fun getGroupById(groupId: Long): Flow<Group?> {
+        return groupDao.getGroupById(groupId)
+    }
+
     fun addGroup(group: Group) {
         viewModelScope.launch { groupDao.insertGroup(group) }
     }

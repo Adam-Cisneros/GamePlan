@@ -212,7 +212,7 @@ fun PlanProgress(
                 val progress = if (totalTasksInMilestone > 0) {
                     completedTasks.toFloat() / totalTasksInMilestone.toFloat()
                 } else {
-                    0f
+                    1f
                 }
 
                 // Display the milestone title and its progress bar

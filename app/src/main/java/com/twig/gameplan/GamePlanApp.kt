@@ -196,7 +196,34 @@ fun GamePlanApp(
 
         composable<Routes.GroupDetail> { backStackEntry ->
             val groupDetail: Routes.GroupDetail = backStackEntry.toRoute()
-            GroupDetail(groupId = groupDetail.groupId)
+            Scaffold(
+                topBar = {
+                    GamePlanTopBar(
+                        canNavigateBack = true,
+                        onUpClick = { navController.navigateUp() },
+                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
+                        onDeleteAction = { showConfirmationDialog = true },
+                        model = model
+                    )
+                },
+                floatingActionButton = {
+                    TSFloatingActionButton(
+                        onClick = { showPlanDialog = true },
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Plan"
+                    )
+                },
+                bottomBar = { BottomNav(navController = navController) }
+            ) { innerPadding ->
+                GroupDetail(
+                    groupId = groupDetail.groupId.toLong(),
+                    onSelectPlan = { plan ->
+                        navController.navigate(Routes.PlanDetail(plan.id.toString()))
+                    },
+                    model = model,
+                    modifier = Modifier.padding(innerPadding)
+                )
+            }
         }
     }
 
