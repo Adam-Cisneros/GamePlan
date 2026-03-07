@@ -25,9 +25,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.serialization.Serializable
 
 sealed class Routes {
+    @Serializable
+    data object Auth
+
     @Serializable
     data object ToDo
 
@@ -49,31 +53,43 @@ sealed class Routes {
 fun GamePlanApp(
     model: GamePlanViewModel = viewModel(factory = GamePlanViewModel.Factory)
 ) {
-    var showConfirmationDialog by rememberSaveable { mutableStateOf(false) }
     var showPlanDialog by rememberSaveable { mutableStateOf(false) }
     var showTaskDialog by rememberSaveable { mutableStateOf(false) }
     var showGroupDialog by rememberSaveable { mutableStateOf(false) }
     var taskToEdit by rememberSaveable { mutableStateOf<Task?>(null) }
     var planToEdit by rememberSaveable { mutableStateOf<Plan?>(null) }
     val navController = rememberNavController()
+    
+    val currentUser = FirebaseAuth.getInstance().currentUser
 
     NavHost(
         navController = navController,
-        startDestination = Routes.Plans, // Your starting screen
+        startDestination = if (currentUser == null) Routes.Auth else Routes.Plans,
     ) {
+        composable<Routes.Auth> {
+            AuthScreen(onAuthSuccess = {
+                navController.navigate(Routes.Plans) {
+                    popUpTo(Routes.Auth) { inclusive = true }
+                }
+            })
+        }
+
         composable<Routes.Plans> {
             Scaffold(
                 topBar = {
                     GamePlanTopBar(
                         canNavigateBack = false,
                         canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { showConfirmationDialog = true },
+                        onDeleteAction = { /* Handle delete completed tasks in TopBar or here */ },
                         model = model
                     )
                 },
                 floatingActionButton = {
                     TSFloatingActionButton(
-                        onClick = { showPlanDialog = true },
+                        onClick = { 
+                            planToEdit = null
+                            showPlanDialog = true 
+                        },
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add Plan"
                     )
@@ -96,7 +112,7 @@ fun GamePlanApp(
                     GamePlanTopBar(
                         canNavigateBack = false,
                         canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { showConfirmationDialog = true },
+                        onDeleteAction = { },
                         model = model
                     )
                 },
@@ -131,7 +147,7 @@ fun GamePlanApp(
                         canNavigateBack = true,
                         onUpClick = { navController.navigateUp() },
                         canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { showConfirmationDialog = true },
+                        onDeleteAction = { },
                         model = model
                     )
                 },
@@ -139,8 +155,8 @@ fun GamePlanApp(
                     TSFloatingActionButton(
                         onClick = {
                             taskToEdit = Task(
-                                id = -1,
-                                planId = planDetail.planId.toLong(),
+                                id = "",
+                                planId = planDetail.planId,
                                 title = "",
                                 due = null,
                                 body = null,
@@ -157,7 +173,7 @@ fun GamePlanApp(
             ) { innerPadding ->
                 PlanDetail(
                     modifier = Modifier.padding(innerPadding),
-                    planId = planDetail.planId.toLong(),
+                    planId = planDetail.planId,
                     onSelectTask = { task ->
                         taskToEdit = task
                         showTaskDialog = true
@@ -173,7 +189,7 @@ fun GamePlanApp(
                     GamePlanTopBar(
                         canNavigateBack = false,
                         canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { showConfirmationDialog = true },
+                        onDeleteAction = { },
                         model = model
                     )
                 },
@@ -204,7 +220,7 @@ fun GamePlanApp(
                         canNavigateBack = true,
                         onUpClick = { navController.navigateUp() },
                         canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { showConfirmationDialog = true },
+                        onDeleteAction = { },
                         model = model
                     )
                 },
@@ -212,8 +228,8 @@ fun GamePlanApp(
                     TSFloatingActionButton(
                         onClick = {
                             planToEdit = Plan(
-                                id = -1,
-                                groupId = groupDetail.groupId.toLong(),
+                                id = "",
+                                groupId = groupDetail.groupId,
                                 title = "",
                                 body = null,
                                 sprintLength = 0,
@@ -229,7 +245,7 @@ fun GamePlanApp(
                 bottomBar = { BottomNav(navController = navController) }
             ) { innerPadding ->
                 GroupDetail(
-                    groupId = groupDetail.groupId.toLong(),
+                    groupId = groupDetail.groupId,
                     onSelectPlan = { plan ->
                         navController.navigate(Routes.PlanDetail(plan.id.toString()))
                     },

@@ -1,11 +1,10 @@
 package com.twig.gameplan
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import com.google.firebase.firestore.DocumentId
 
-@Entity(tableName = "groups")
 data class Group(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val title: String,
+    @DocumentId val id: String = "",
+    val uid: String = "", // User ID for filtering
+    val title: String = "",
     val description: String? = null,
 )

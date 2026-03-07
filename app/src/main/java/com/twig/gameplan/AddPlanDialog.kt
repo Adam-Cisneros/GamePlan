@@ -135,6 +135,17 @@ fun AddPlanDialog(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (planToEdit != null && planToEdit.id != "") {
+                        Button(
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ), onClick = {
+                                showConfirmationDialog = true
+                            }
+                        ) {
+                            Text("Delete")
+                        }
+                    }
                     Button(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary
@@ -150,7 +161,7 @@ fun AddPlanDialog(
                         ),
                         enabled = planTitle.isNotBlank() && planSprintLength != null,
                         onClick = {
-                            if (planToEdit == null || planToEdit.id == (-1).toLong()) {
+                            if (planToEdit == null || planToEdit.id == "") {
                                 val plan = Plan(
                                     title = planTitle,
                                     body = planBody,
@@ -174,7 +185,7 @@ fun AddPlanDialog(
                             }
                             onDismiss()
                         }) {
-                        Text(if (planToEdit == null) "Add Plan" else "Update Plan")
+                        Text(if (planToEdit == null || planToEdit.id == "") "Add Plan" else "Update Plan")
                     }
                 }
             }
@@ -213,6 +224,7 @@ fun PlanTextInput(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PlanMilestoneInput(
     text: String,
@@ -285,7 +297,6 @@ fun PlanGroupInput(
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
-            // Apply fillMaxWidth() here
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth()

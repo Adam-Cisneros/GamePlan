@@ -123,7 +123,7 @@ fun AddTaskDialog(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (taskToEdit != null && taskToEdit.id != (-1).toLong()) {
+                    if (taskToEdit != null && taskToEdit.id != "") {
                         Button(
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error
@@ -161,7 +161,7 @@ fun AddTaskDialog(
                                     )
                                 )
                             } else {
-                                if (taskToEdit.id == (-1).toLong()) {
+                                if (taskToEdit.id == "") {
                                     model.addTask(
                                         Task(
                                             title = taskTitle,
@@ -185,7 +185,7 @@ fun AddTaskDialog(
                             onDismiss()
                         }) {
                         // Change button text based on whether we are editing or adding
-                        Text(if (taskToEdit == null || taskToEdit.id == (-1).toLong()) "Add" else "Update")
+                        Text(if (taskToEdit == null || taskToEdit.id == "") "Add" else "Update")
                     }
                 }
             }

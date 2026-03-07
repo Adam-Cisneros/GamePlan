@@ -1,27 +1,15 @@
 package com.twig.gameplan
 
-import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.PrimaryKey
+import com.google.firebase.firestore.DocumentId
 import java.util.Date
 
-@Entity(
-    tableName = "tasks",
-    foreignKeys = [
-        ForeignKey(
-            entity = Plan::class,
-            parentColumns = ["id"],
-            childColumns = ["planId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
-)
 data class Task(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val planId: Long? = null, // Link to Plan
-    val title: String,
+    @DocumentId val id: String = "",
+    val uid: String = "", // User ID for filtering
+    val planId: String? = null, // Link to Plan
+    val title: String = "",
     val due: Date? = null,
     val body: String? = null,
     val stage: String = "To Do",
-    val milestoneTitle: String? = null // Store milestone as string for simplicity
+    val milestoneTitle: String? = null
 )

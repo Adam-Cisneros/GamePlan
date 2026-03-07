@@ -34,7 +34,7 @@ import kotlinx.coroutines.flow.filter
 
 @Composable
 fun PlanDetail(
-    planId: Long,
+    planId: String,
     modifier: Modifier = Modifier,
     onSelectTask: (Task) -> Unit = {},
     model: GamePlanViewModel

@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun GroupDetail(
-    groupId: Long,
+    groupId: String,
     modifier: Modifier = Modifier,
     onSelectPlan: (Plan) -> Unit = {},
     model: GamePlanViewModel
