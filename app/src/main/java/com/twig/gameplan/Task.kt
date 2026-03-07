@@ -23,6 +23,5 @@ data class Task(
     val due: Date? = null,
     val body: String? = null,
     val stage: String = "To Do",
-    val completed: Boolean = false,
     val milestoneTitle: String? = null // Store milestone as string for simplicity
 )

@@ -161,7 +161,7 @@ fun GroupPlans(
         plans.forEach { plan ->
             // Calculate overall progress for the plan
             val allTasksInPlan = model.getTasksByPlan(plan.id).collectAsState(initial = emptyList()).value
-            val completedTasks = allTasksInPlan.count { it.completed }
+            val completedTasks = allTasksInPlan.count { it.stage == "Done" }
             val totalTasks = allTasksInPlan.size
             val progress = if (totalTasks > 0) {
                 completedTasks.toFloat() / totalTasks.toFloat()

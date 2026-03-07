@@ -51,12 +51,14 @@ import com.twig.gameplan.ui.theme.GamePlanTheme
 @Composable
 fun AddGroupDialog(
     onDismiss: () -> Unit,
+    groupToEdit: Group? = null,
     model: GamePlanViewModel,
     modifier: Modifier = Modifier
 ) {
-    var groupName by rememberSaveable { mutableStateOf("") }
-    var groupDescription by rememberSaveable { mutableStateOf("") }
-    var groupPlans by rememberSaveable { mutableStateOf(listOf<Plan>()) }
+    var showConfirmationDialog by rememberSaveable { mutableStateOf(false) }
+
+    var groupName by remember(groupToEdit) { mutableStateOf(groupToEdit?.title ?: "") }
+    var groupDescription by remember(groupToEdit) { mutableStateOf(groupToEdit?.description ?: "") }
 
     Dialog(
         onDismissRequest = {
@@ -71,7 +73,8 @@ fun AddGroupDialog(
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(16.dp)
             ) {
 
                 GroupTextInput(
@@ -89,11 +92,6 @@ fun AddGroupDialog(
                         .fillMaxWidth()
                         .weight(1f)
                 )
-                GroupPlanInput(
-                    plans = model.allPlans.collectAsState(initial = emptyList()).value,
-                    onPlanChange = { groupPlans = groupPlans + it },
-                    modifier = Modifier.fillMaxWidth()
-                )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
@@ -108,25 +106,42 @@ fun AddGroupDialog(
                     Button(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
-                        ), onClick = {
-                            Group(
-                                title = groupName,
-                                description = groupDescription,
-                            )
-                            model.addGroup(
-                                Group(
+                        ),
+                        enabled = groupName.isNotBlank(),
+                        onClick = {
+                            if (groupToEdit == null) {
+                                val group = Group(
                                     title = groupName,
                                     description = groupDescription,
                                 )
-                            )
+                                model.addGroup(group)
+                            } else {
+                                val group = groupToEdit.copy(
+                                    id = groupToEdit.id,
+                                    title = groupName,
+                                    description = groupDescription,
+                                )
+                                model.updateGroup(group)
+                            }
                             onDismiss()
                         }) {
-                        Text("Add Group")
+                        Text(if (groupToEdit == null) "Add" else "Update")
                     }
                 }
             }
         }
-
+        if (showConfirmationDialog) {
+            DeleteConfirmationDialog(
+                onConfirm = {
+                    model.deleteGroup(groupToEdit!!)
+                    showConfirmationDialog = false
+                    onDismiss()
+                },
+                onDismiss = {
+                    showConfirmationDialog = false
+                }
+            )
+        }
     }
 }
 
@@ -147,52 +162,4 @@ fun GroupTextInput(
         label = { Text(label) },
         maxLines = maxLines
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun GroupPlanInput(
-    plans: List<Plan>,
-    onPlanChange: (Plan) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var selectedPlan by rememberSaveable { mutableStateOf<Plan?>(null) }
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier // This already gets .fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            value = selectedPlan?.title ?: "Select plans to connect (Optional)",
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-            },
-            // Apply fillMaxWidth() here
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
-                .padding(6.dp)
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.exposedDropdownSize() // This ensures the dropdown matches the text field width
-        ) {
-            plans.forEach { plan ->
-                DropdownMenuItem(
-                    text = { Text(plan.title) },
-                    onClick = {
-                        selectedPlan = plan
-                        onPlanChange(plan)
-                        expanded = false
-                    },
-                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                )
-            }
-        }
-    }
 }

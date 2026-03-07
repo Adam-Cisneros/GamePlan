@@ -54,6 +54,7 @@ fun GamePlanApp(
     var showTaskDialog by rememberSaveable { mutableStateOf(false) }
     var showGroupDialog by rememberSaveable { mutableStateOf(false) }
     var taskToEdit by rememberSaveable { mutableStateOf<Task?>(null) }
+    var planToEdit by rememberSaveable { mutableStateOf<Plan?>(null) }
     val navController = rememberNavController()
 
     NavHost(
@@ -138,15 +139,16 @@ fun GamePlanApp(
                     TSFloatingActionButton(
                         onClick = {
                             taskToEdit = Task(
+                                id = -1,
                                 planId = planDetail.planId.toLong(),
                                 title = "",
                                 due = null,
                                 body = null,
                                 stage = "To Do",
-                                completed = false,
                             )
                             showTaskDialog = true
                         },
+                        modifier = Modifier.padding(bottom = 80.dp),
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add Task"
                     )
@@ -208,7 +210,18 @@ fun GamePlanApp(
                 },
                 floatingActionButton = {
                     TSFloatingActionButton(
-                        onClick = { showPlanDialog = true },
+                        onClick = {
+                            planToEdit = Plan(
+                                id = -1,
+                                groupId = groupDetail.groupId.toLong(),
+                                title = "",
+                                body = null,
+                                sprintLength = 0,
+                                milestones = emptyList(),
+                                completed = false
+                            )
+                            showPlanDialog = true
+                        },
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add Plan"
                     )
@@ -227,22 +240,10 @@ fun GamePlanApp(
         }
     }
 
-
-    if (showConfirmationDialog) {
-        DeleteConfirmationDialog(
-            onConfirm = {
-                model.deleteCompletedTasks()
-                showConfirmationDialog = false
-            },
-            onDismiss = {
-                showConfirmationDialog = false
-            }
-        )
-    }
-
     if (showPlanDialog) {
         AddPlanDialog(
             onDismiss = { showPlanDialog = false },
+            planToEdit = planToEdit,
             model = model,
             modifier = Modifier.fillMaxSize(0.9f)
         )
@@ -269,11 +270,13 @@ fun GamePlanApp(
 @Composable
 fun TSFloatingActionButton(
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     imageVector: ImageVector,
     contentDescription: String
 ) {
     FloatingActionButton(
         onClick = onClick,
+        modifier = modifier,
         containerColor = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary
     ) {
@@ -291,8 +294,8 @@ fun DeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete Tasks") },
-        text = { Text("Are you sure you want to delete all completed tasks?") },
+        title = { Text("Delete") },
+        text = { Text("Are you sure you want to delete this item?") },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text("Yes")

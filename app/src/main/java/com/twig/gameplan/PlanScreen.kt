@@ -62,15 +62,9 @@ fun PlanScreen(
             PlanCard(
                 plan = plan,
                 model = model,
-                toggleCompleted = {
-                    model.togglePlanCompleted(it)
-                },
                 onClick = {
                     onSelectPlan(it)
                 },
-                toggleC = {
-                    model.updateTask(it.copy(completed = !it.completed))
-                }
             )
         }
     }
@@ -81,9 +75,7 @@ fun PlanCard(
     modifier: Modifier = Modifier,
     plan: Plan,
     model: GamePlanViewModel,
-    toggleCompleted: (Plan) -> Unit = {},
     onClick: (Plan) -> Unit = {},
-    toggleC: (Task) -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -117,16 +109,13 @@ fun PlanCard(
                 }
                 PlanTitle(plan,
                     modifier = Modifier.weight(1f))
-                Checkbox(
-                    checked = plan.completed,
-                    modifier = Modifier.alignByBaseline(),
-                    onCheckedChange = {
-                        toggleCompleted(plan)
-                    })
 
             }
             AnimatedVisibility(visible = expanded) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
                     PlanBody(
                         plan,
                         modifier = Modifier.padding(16.dp, 0.dp)
@@ -140,7 +129,6 @@ fun PlanCard(
                         modifier = Modifier.padding(16.dp, 0.dp),
                         plan = plan,
                         model = model,
-                        toggleCompleted = toggleC
                     )
                     Button(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -207,12 +195,12 @@ fun PlanProgress(
             )
             plan.milestones.forEach { milestone ->
                 // Calculate the progress for each milestone
-                val completedTasks = tasks.count { it.milestoneTitle == milestone && it.completed }
+                val completedTasks = tasks.count { it.milestoneTitle == milestone && it.stage == "Done" }
                 val totalTasksInMilestone = tasks.count { it.milestoneTitle == milestone }
                 val progress = if (totalTasksInMilestone > 0) {
                     completedTasks.toFloat() / totalTasksInMilestone.toFloat()
                 } else {
-                    1f
+                    0f
                 }
 
                 // Display the milestone title and its progress bar
@@ -226,7 +214,8 @@ fun PlanProgress(
                         progress = { progress },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 4.dp),
+                            .padding(top = 4.dp)
+                            .align(Alignment.CenterVertically),
                     )
                 }
             }
@@ -239,7 +228,6 @@ fun PlanTodo(
     modifier: Modifier = Modifier,
     plan: Plan,
     model: GamePlanViewModel,
-    toggleCompleted: (Task) -> Unit = {},
 ) {
     val tasks by model.getTasksByPlan(plan.id).collectAsState(initial = emptyList())
 
@@ -251,20 +239,13 @@ fun PlanTodo(
                 color = if (plan.completed) Color.Gray else Color.Black
             )
             tasks.forEach { task ->
-                if (!task.completed) {
+                if (task.stage != "Done") {
                     Row(
                         modifier = Modifier
                             .padding(horizontal = 4.dp)
                             .align(Alignment.Start),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Checkbox(
-                            checked = task.completed,
-                            modifier = Modifier.alignByBaseline(),
-                            onCheckedChange = {
-                                toggleCompleted(task)
-                            }
-                        )
                         Text(
                             text = task.title,
                             style = MaterialTheme.typography.titleMedium,

@@ -65,9 +65,6 @@ fun ToDoScreen(
         items(taskList, key = { it.id }) { task ->
             TaskCard(
                 task = task,
-                toggleCompleted = {
-                    model.updateTask(it.copy(completed = !it.completed))
-                },
                 onClick = {
                     onSelectTask(it)
                 }
@@ -81,11 +78,9 @@ fun ToDoScreen(
 fun TaskCard(
     task: Task,
     modifier: Modifier = Modifier,
-    toggleCompleted: (Task) -> Unit = {},
     onClick: (Task) -> Unit = {},
     onSwipeLeft: (Task) -> Unit = {},  // Added for demotion
     onSwipeRight: (Task) -> Unit = {}, // Added for promotion
-    isToDo: Boolean = true,
     enableSwipe: Boolean = false       // Only enable swipe in PlanDetail
 ) {
     val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
@@ -138,10 +133,10 @@ fun TaskCard(
                 }
             }
         ) {
-            MainCardContent(task, isExpanded, onExpandToggle = { isExpanded = !isExpanded }, toggleCompleted, onClick, isToDo, formatter, modifier)
+            MainCardContent(task, isExpanded, onExpandToggle = { isExpanded = !isExpanded }, onClick, formatter, modifier)
         }
     } else {
-        MainCardContent(task, isExpanded, onExpandToggle = { isExpanded = !isExpanded }, toggleCompleted, onClick, isToDo, formatter, modifier)
+        MainCardContent(task, isExpanded, onExpandToggle = { isExpanded = !isExpanded }, onClick, formatter, modifier)
     }
 }
 
@@ -150,9 +145,7 @@ private fun MainCardContent(
     task: Task,
     isExpanded: Boolean,
     onExpandToggle: () -> Unit,
-    toggleCompleted: (Task) -> Unit,
     onClick: (Task) -> Unit,
-    isToDo: Boolean,
     formatter: SimpleDateFormat,
     modifier: Modifier
 ) {
@@ -164,9 +157,6 @@ private fun MainCardContent(
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (isToDo) {
-                    Checkbox(checked = task.completed, onCheckedChange = { toggleCompleted(task) })
-                }
                 TaskTitle(task, modifier = Modifier.weight(1f))
                 IconButton(onClick = onExpandToggle) {
                     Icon(
@@ -205,7 +195,7 @@ fun TaskTitle(
         text = task.title,
         style = MaterialTheme.typography.titleLarge,
         modifier = modifier,
-        color = if (task.completed)
+        color = if (task.stage == "Done")
 
             Color.Gray else Color.Black
     )
@@ -223,7 +213,7 @@ fun TaskBody(
                 lineBreak = LineBreak.Paragraph
             ),
             modifier = modifier,
-            color = if (task.completed)
+            color = if (task.stage == "Done")
 
                 Color.Gray else Color.Black
         )

@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -51,15 +52,26 @@ import com.twig.gameplan.ui.theme.GamePlanTheme
 @Composable
 fun AddPlanDialog(
     onDismiss: () -> Unit,
+    planToEdit: Plan? = null,
     model: GamePlanViewModel,
     modifier: Modifier = Modifier
 ) {
-    var planTitle by rememberSaveable { mutableStateOf("") }
-    var planBody by rememberSaveable { mutableStateOf("") }
+    var showConfirmationDialog by rememberSaveable { mutableStateOf(false) }
+
+    var planTitle by remember(planToEdit) { mutableStateOf(planToEdit?.title ?: "") }
+    var planBody by remember(planToEdit) { mutableStateOf(planToEdit?.body ?: "") }
     var milestoneText by rememberSaveable { mutableStateOf("") }
-    var planGroup by rememberSaveable { mutableStateOf<Group?>(null) }
-    var planMilestones by rememberSaveable { mutableStateOf(listOf<String>()) }
-    var planSprintLength by rememberSaveable { mutableStateOf<Int?>(null) }
+    var planGroup by remember { mutableStateOf<Group?>(null) }
+    var planMilestones by remember(planToEdit) { mutableStateOf(planToEdit?.milestones ?: listOf<String>()) }
+    var planSprintLength by remember(planToEdit) { mutableStateOf<Int?>(planToEdit?.sprintLength) }
+
+    val groups by model.allGroups.collectAsState(initial = emptyList())
+
+    LaunchedEffect(planToEdit, groups) {
+        if (planToEdit != null && planGroup == null) {
+            planGroup = groups.find { it.id == planToEdit.groupId }
+        }
+    }
 
     Dialog(
         onDismissRequest = {
@@ -74,7 +86,8 @@ fun AddPlanDialog(
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(16.dp)
             ) {
 
                 PlanTextInput(
@@ -110,7 +123,8 @@ fun AddPlanDialog(
                         .fillMaxWidth()
                 )
                 PlanGroupInput(
-                    groups = model.allGroups.collectAsState(initial = emptyList()).value,
+                    groups = groups,
+                    selectedGroup = planGroup,
                     onGroupChange = { planGroup = it },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -133,31 +147,50 @@ fun AddPlanDialog(
                     Button(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
-                        ), onClick = {
-                            Plan(
-                                title = planTitle,
-                                body = planBody,
-                                groupId = planGroup?.id,
-                                milestones = planMilestones,
-                                sprintLength = planSprintLength!!
-                            )
-                            model.addPlan(
-                                Plan(
+                        ),
+                        enabled = planTitle.isNotBlank() && planSprintLength != null,
+                        onClick = {
+                            if (planToEdit == null || planToEdit.id == (-1).toLong()) {
+                                val plan = Plan(
                                     title = planTitle,
                                     body = planBody,
                                     groupId = planGroup?.id,
                                     milestones = planMilestones,
-                                    sprintLength = planSprintLength!!
+                                    sprintLength = planSprintLength!!,
+                                    completed = false
                                 )
-                            )
+                                model.addPlan(plan)
+                            } else {
+                                val plan = Plan(
+                                    id = planToEdit.id,
+                                    title = planTitle,
+                                    body = planBody,
+                                    groupId = planGroup?.id,
+                                    milestones = planMilestones,
+                                    sprintLength = planSprintLength!!,
+                                    completed = planToEdit.completed
+                                )
+                                model.updatePlan(plan)
+                            }
                             onDismiss()
                         }) {
-                        Text("Add Plan")
+                        Text(if (planToEdit == null) "Add Plan" else "Update Plan")
                     }
                 }
             }
         }
-
+        if (showConfirmationDialog) {
+            DeleteConfirmationDialog(
+                onConfirm = {
+                    model.deletePlan(planToEdit!!)
+                    showConfirmationDialog = false
+                    onDismiss()
+                },
+                onDismiss = {
+                    showConfirmationDialog = false
+                }
+            )
+        }
     }
 }
 
@@ -233,10 +266,11 @@ fun PlanMilestoneInput(
 @Composable
 fun PlanGroupInput(
     groups: List<Group>,
+    selectedGroup: Group?,
     onGroupChange: (Group) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedGroup by rememberSaveable { mutableStateOf<Group?>(null) }
+    var currentSelectedGroup by remember(selectedGroup) { mutableStateOf(selectedGroup) }
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
@@ -245,7 +279,7 @@ fun PlanGroupInput(
         modifier = modifier // This already gets .fillMaxWidth()
     ) {
         OutlinedTextField(
-            value = selectedGroup?.title ?: "Select a group",
+            value = currentSelectedGroup?.title ?: "Select a group",
             onValueChange = {},
             readOnly = true,
             trailingIcon = {
@@ -266,7 +300,7 @@ fun PlanGroupInput(
                 DropdownMenuItem(
                     text = { Text(group.title) },
                     onClick = {
-                        selectedGroup = group
+                        currentSelectedGroup = group
                         onGroupChange(group)
                         expanded = false
                     },

@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -21,14 +19,14 @@ class GamePlanViewModel(
     val allPlans: Flow<List<Plan>> = planDao.getAllPlans()
     val allGroups: Flow<List<Group>> = groupDao.getAllGroups()
 
-    val completedTasksExist: Flow<Boolean> = allTasks.map { tasks -> tasks.any { it.completed } }
+    val completedTasksExist: Flow<Boolean> = allTasks.map { tasks -> tasks.any { it.stage == "Done" } }
     val completedPlansExist: Flow<Boolean> = allPlans.map { plans -> plans.any { it.completed } }
 
     val stageList = listOf("To Do", "In Progress", "In Review", "Done")
 
     // --- Init Operations ---
     init {
-        clearDatabase()
+        //clearDatabase()
     }
 
     fun clearDatabase() {
@@ -53,29 +51,19 @@ class GamePlanViewModel(
         viewModelScope.launch { taskDao.updateTask(task) }
     }
 
-    fun deleteCompletedTasks() {
-        viewModelScope.launch {
-            allTasks.collect { tasks ->
-                tasks.filter { it.completed }.forEach { task ->
-                    taskDao.deleteTask(task)
-                }
-            }
-        }
+    fun deleteTask(task: Task) {
+        viewModelScope.launch { taskDao.deleteTask(task) }
     }
 
     fun moveTaskStage(task: Task, direction: Int) {
         val currentIndex = stageList.indexOf(task.stage)
-        // If currentIndex is -1, the stage wasn't found in the list
-        if (currentIndex == -1) return
 
         val newIndex = currentIndex + direction
 
+        if (newIndex < 0 || newIndex >= stageList.size) return
+
         viewModelScope.launch {
-            if (newIndex >= stageList.size) {
-                taskDao.deleteTask(task)
-            } else if (newIndex >= 0) {
-                taskDao.updateTask(task.copy(stage = stageList[newIndex]))
-            }
+            taskDao.updateTask(task.copy(stage = stageList[newIndex]))
         }
     }
 
@@ -90,6 +78,10 @@ class GamePlanViewModel(
 
     fun addPlan(plan: Plan) {
         viewModelScope.launch { planDao.insertPlan(plan) }
+    }
+
+    fun updatePlan(plan: Plan) {
+        viewModelScope.launch { planDao.updatePlan(plan) }
     }
 
     fun togglePlanCompleted(plan: Plan) {
@@ -111,6 +103,10 @@ class GamePlanViewModel(
         viewModelScope.launch { groupDao.insertGroup(group) }
     }
 
+    fun updateGroup(group: Group) {
+        viewModelScope.launch { groupDao.updateGroup(group) }
+    }
+
     fun deleteGroup(group: Group) {
         viewModelScope.launch { groupDao.deleteGroup(group) }
     }
@@ -130,7 +126,9 @@ class GamePlanViewModel(
                     application.applicationContext,
                     AppDatabase::class.java,
                     "gameplan_db"
-                ).build()
+                )
+                .fallbackToDestructiveMigration() // Added to handle schema changes by wiping the DB
+                .build()
 
                 return GamePlanViewModel(
                     database.taskDao(),
