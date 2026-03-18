@@ -1,4 +1,4 @@
-package com.twig.gameplan
+package com.twig.gameplan.nav
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.twig.gameplan.Routes
 
 @Composable
 fun BottomNav(navController: NavController) {

@@ -1,4 +1,4 @@
-package com.twig.gameplan
+package com.twig.gameplan.screens
 
 import android.app.Activity
 import android.widget.Toast

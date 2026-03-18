@@ -1,4 +1,4 @@
-package com.twig.gameplan
+package com.twig.gameplan.data
 
 import com.google.firebase.firestore.DocumentId
 
