@@ -1,4 +1,4 @@
-package com.twig.gameplan
+package com.twig.gameplan.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
@@ -30,7 +29,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.flow.filter
+import com.twig.gameplan.DeleteConfirmationDialog
+import com.twig.gameplan.GamePlanViewModel
+import com.twig.gameplan.data.Plan
+import com.twig.gameplan.data.Task
+import com.twig.gameplan.dialogues.AddPlanDialog
 
 @Composable
 fun PlanDetail(

@@ -1,4 +1,4 @@
-package com.twig.gameplan
+package com.twig.gameplan.dialogues
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,6 +39,10 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import com.twig.gameplan.DeleteConfirmationDialog
+import com.twig.gameplan.GamePlanViewModel
+import com.twig.gameplan.data.Plan
+import com.twig.gameplan.data.Task
 
 @Composable
 fun AddTaskDialog(

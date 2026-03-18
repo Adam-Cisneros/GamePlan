@@ -26,6 +26,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.google.firebase.auth.FirebaseAuth
+import com.twig.gameplan.data.Plan
+import com.twig.gameplan.data.Task
+import com.twig.gameplan.dialogues.AddGroupDialog
+import com.twig.gameplan.dialogues.AddPlanDialog
+import com.twig.gameplan.dialogues.AddTaskDialog
+import com.twig.gameplan.nav.BottomNav
+import com.twig.gameplan.nav.GamePlanTopBar
+import com.twig.gameplan.screens.AuthScreen
+import com.twig.gameplan.screens.GroupDetail
+import com.twig.gameplan.screens.GroupScreen
+import com.twig.gameplan.screens.PlanDetail
+import com.twig.gameplan.screens.PlanScreen
+import com.twig.gameplan.screens.ToDoScreen
 import kotlinx.serialization.Serializable
 
 sealed class Routes {

@@ -1,4 +1,4 @@
-package com.twig.gameplan
+package com.twig.gameplan.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,6 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.twig.gameplan.DeleteConfirmationDialog
+import com.twig.gameplan.GamePlanViewModel
+import com.twig.gameplan.data.Group
+import com.twig.gameplan.data.Plan
+import com.twig.gameplan.dialogues.AddGroupDialog
 
 @Composable
 fun GroupDetail(
