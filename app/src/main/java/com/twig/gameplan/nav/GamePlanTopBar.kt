@@ -3,6 +3,7 @@ package com.twig.gameplan.nav
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,8 +22,7 @@ fun GamePlanTopBar(
     modifier: Modifier = Modifier,
     canNavigateBack: Boolean = false,
     onUpClick: () -> Unit = { },
-    canDeleteTasks: Boolean = false,
-    onDeleteAction: () -> Unit = {},
+    onSignOutPressed: () -> Unit = {},
     model: GamePlanViewModel,
 ) {
     TopAppBar(
@@ -51,16 +51,14 @@ fun GamePlanTopBar(
             }
         },
         actions = {
-            if (canDeleteTasks) {
-                IconButton(
-                    onClick = onDeleteAction,
-                    enabled = true,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Tasks"
-                    )
-                }
+            IconButton(
+                onClick = onSignOutPressed,
+                enabled = true,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ExitToApp,
+                    contentDescription = "Sign Out"
+                )
             }
         }
     )

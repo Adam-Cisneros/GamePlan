@@ -1,48 +1,27 @@
 package com.twig.gameplan.dialogues
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.input.ImeAction
 import com.twig.gameplan.DeleteConfirmationDialog
 import com.twig.gameplan.GamePlanViewModel
+import com.twig.gameplan.api.GitHubRepo
 import com.twig.gameplan.data.Group
 import com.twig.gameplan.data.Plan
+import kotlinx.coroutines.launch
 
 @Composable
 fun AddPlanDialog(
@@ -58,9 +37,11 @@ fun AddPlanDialog(
     var milestoneText by rememberSaveable { mutableStateOf("") }
     var planGroup by remember { mutableStateOf<Group?>(null) }
     var planMilestones by remember(planToEdit) { mutableStateOf(planToEdit?.milestones ?: listOf<String>()) }
-    var planSprintLength by remember(planToEdit) { mutableStateOf<Int?>(planToEdit?.sprintLength) }
+    var planSprintLength by remember(planToEdit) { mutableStateOf<Int?>(planToEdit?.sprintLength ?: 2) }
 
     val groups by model.allGroups.collectAsState(initial = emptyList())
+    val gitHubToken by model.gitHubToken.collectAsState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(planToEdit, groups) {
         if (planToEdit != null && planGroup == null) {
@@ -82,8 +63,19 @@ fun AddPlanDialog(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxHeight()
             ) {
+                Text("Plan Details", style = MaterialTheme.typography.headlineSmall)
+
+                if (gitHubToken != null && planToEdit == null) {
+                    GitHubPlanImportSection(model = model) { repo ->
+                        model.importGitHubRepoAsPlan(repo.name, repo.owner.login)
+                        onDismiss()
+                    }
+                    HorizontalDivider()
+                }
 
                 PlanTextInput(
                     planTitle,
@@ -107,15 +99,14 @@ fun AddPlanDialog(
                     onAdd = {
                         if (milestoneText.isNotBlank()) {
                             planMilestones = planMilestones + milestoneText
-                            milestoneText = "" // Clear text after adding
+                            milestoneText = "" 
                         }
                     },
                     milestones = planMilestones,
                     onRemove = { milestoneToRemove ->
                         planMilestones = planMilestones.filterNot { it == milestoneToRemove }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth()
                 )
                 PlanGroupInput(
                     groups = groups,
@@ -196,6 +187,65 @@ fun AddPlanDialog(
                     showConfirmationDialog = false
                 }
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GitHubPlanImportSection(
+    model: GamePlanViewModel,
+    onImport: (GitHubRepo) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var repos by remember { mutableStateOf<List<GitHubRepo>>(emptyList()) }
+    var selectedRepo by remember { mutableStateOf<GitHubRepo?>(null) }
+    var importProjectBoard by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        repos = model.getGitHubRepos()
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("Import from GitHub", style = MaterialTheme.typography.titleMedium)
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedRepo?.name ?: "Select a repository",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                repos.forEach { repo ->
+                    DropdownMenuItem(
+                        text = { Text(repo.name) },
+                        onClick = {
+                            selectedRepo = repo
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+        if (selectedRepo != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = importProjectBoard, onCheckedChange = { importProjectBoard = it })
+                Text("Import Project Board")
+            }
+            Button(
+                onClick = { onImport(selectedRepo!!) },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("Import")
+            }
         }
     }
 }
@@ -283,7 +333,7 @@ fun PlanGroupInput(
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
-        modifier = modifier // This already gets .fillMaxWidth()
+        modifier = modifier
     ) {
         OutlinedTextField(
             value = currentSelectedGroup?.title ?: "Select a group",
@@ -300,7 +350,7 @@ fun PlanGroupInput(
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.exposedDropdownSize() // This ensures the dropdown matches the text field width
+            modifier = Modifier.exposedDropdownSize()
         ) {
             groups.forEach { group ->
                 DropdownMenuItem(

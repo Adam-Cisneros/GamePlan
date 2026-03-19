@@ -52,18 +52,98 @@ fun ToDoScreen(
     model: GamePlanViewModel
 ) {
     val taskList by model.allTasks.collectAsState(initial = emptyList())
+    var ToDoTasksExist by remember { mutableStateOf(false) }
+    var InProgressTasksExist by remember { mutableStateOf(false) }
+    var InReviewTasksExist by remember { mutableStateOf(false) }
+
+    ToDoTasksExist = taskList.any { it.stage == "To Do" }
+    InProgressTasksExist = taskList.any { it.stage == "In Progress" }
+    InReviewTasksExist = taskList.any { it.stage == "In Review" }
 
     LazyColumn(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        items(taskList, key = { it.id }) { task ->
-            TaskCard(
-                task = task,
-                onClick = {
-                    onSelectTask(it)
-                }
+        item {
+            Text(
+                text = "To Do",
+                style = MaterialTheme.typography.displaySmall,
+                color = Color.Black
             )
+        }
+        if (!ToDoTasksExist) {
+            item {
+                Text(
+                    text = "No tasks to do",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = Color.Gray
+                )
+            }
+        } else {
+            items(taskList, key = { it.id }) { task ->
+                if (task.stage == "To Do") {
+                    TaskCard(
+                        task = task,
+                        onClick = {
+                            onSelectTask(it)
+                        }
+                    )
+                }
+            }
+        }
+        item {
+            Text(
+                text = "In Progress",
+                style = MaterialTheme.typography.displaySmall,
+                color = Color.Black
+            )
+        }
+        if (!InProgressTasksExist) {
+            item {
+                Text(
+                    text = "No tasks in progress",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = Color.Gray
+                )
+            }
+        } else {
+            items(taskList, key = { it.id }) { task ->
+                if (task.stage == "In Progress") {
+                    TaskCard(
+                        task = task,
+                        onClick = {
+                            onSelectTask(it)
+                        }
+                    )
+                }
+            }
+        }
+        item {
+            Text(
+                text = "In Review",
+                style = MaterialTheme.typography.displaySmall,
+                color = Color.Black
+            )
+        }
+        if (!InReviewTasksExist) {
+            item {
+                Text(
+                    text = "No tasks in review",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = Color.Gray
+                )
+            }
+        } else {
+            items(taskList, key = { it.id }) { task ->
+                if (task.stage == "In Review") {
+                    TaskCard(
+                        task = task,
+                        onClick = {
+                            onSelectTask(it)
+                        }
+                    )
+                }
+            }
         }
     }
 }

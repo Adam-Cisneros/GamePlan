@@ -1,12 +1,17 @@
 package com.twig.gameplan.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -176,7 +181,11 @@ fun PlanProgress(
     val tasks by model.getTasksByPlan(plan.id).collectAsState(initial = emptyList())
 
     if (tasks.isNotEmpty()) {
-        Column(modifier = modifier) {
+        Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(
                 text = "Progress",
                 style = MaterialTheme.typography.titleLarge,
@@ -193,7 +202,11 @@ fun PlanProgress(
                 }
 
                 // Display the milestone title and its progress bar
-                Row(modifier = Modifier.padding(horizontal = 4.dp)) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
                         text = milestone,
                         style = MaterialTheme.typography.titleMedium,
@@ -221,24 +234,37 @@ fun PlanTodo(
     val tasks by model.getTasksByPlan(plan.id).collectAsState(initial = emptyList())
 
     if (tasks.isNotEmpty()) {
-        Column(modifier = modifier) {
+        Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.Start,
+        ) {
             Text(
                 text = "To Do",
                 style = MaterialTheme.typography.titleLarge,
                 color = if (plan.completed) Color.Gray else Color.Black
             )
             tasks.forEach { task ->
-                if (task.stage != "Done") {
+                if (task.stage == "To Do") {
                     Row(
                         modifier = Modifier
                             .padding(horizontal = 4.dp)
                             .align(Alignment.Start),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Spacer(
+                            modifier = Modifier
+                                .height(6.dp)
+                                .width(6.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                        )
                         Text(
                             text = task.title,
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (plan.completed) Color.Gray else Color.Black
+                            color = if (plan.completed) Color.Gray else Color.Black,
+                            modifier = Modifier.padding(start = 8.dp)
                         )
                     }
                 }

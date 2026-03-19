@@ -1,53 +1,28 @@
 package com.twig.gameplan.dialogues
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import com.twig.gameplan.DeleteConfirmationDialog
 import com.twig.gameplan.GamePlanViewModel
+import com.twig.gameplan.api.GitHubIssue
+import com.twig.gameplan.api.GitHubRepo
 import com.twig.gameplan.data.Plan
 import com.twig.gameplan.data.Task
 
 @Composable
 fun AddTaskDialog(
     onDismiss: () -> Unit,
-    taskToEdit: Task?, // Accept a nullable Task object
+    taskToEdit: Task?,
     model: GamePlanViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -57,16 +32,14 @@ fun AddTaskDialog(
     var taskBody by remember(taskToEdit) { mutableStateOf(taskToEdit?.body ?: "") }
     var taskMilestone by remember(taskToEdit) { mutableStateOf(taskToEdit?.milestoneTitle) }
 
-    // 1. Initialize as null; we will populate it from the 'plans' list
     var taskPlan by remember { mutableStateOf<Plan?>(null) }
     var taskDue by remember(taskToEdit) { mutableStateOf(taskToEdit?.due) }
 
     var showDateModal by rememberSaveable { mutableStateOf(false) }
 
-    // 2. Observe all plans (this is already correctly done in your file)
     val plans by model.allPlans.collectAsState(initial = emptyList())
+    val gitHubToken by model.gitHubToken.collectAsState()
 
-    // 3. Use LaunchedEffect to set the initial plan once 'plans' list is loaded
     LaunchedEffect(taskToEdit, plans) {
         if (taskToEdit != null && taskPlan == null) {
             taskPlan = plans.find { it.id == taskToEdit.planId }
@@ -87,8 +60,17 @@ fun AddTaskDialog(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp).fillMaxHeight()
             ) {
+                Text("Task Details", style = MaterialTheme.typography.headlineSmall)
+
+                if (gitHubToken != null && taskToEdit == null) {
+                    GitHubTaskImportSection(model = model, selectedPlan = taskPlan) { owner, repo, issue ->
+                        model.importGitHubIssueAsTask(owner, repo, issue.title, taskPlan?.id)
+                        onDismiss()
+                    }
+                    HorizontalDivider()
+                }
 
                 TaskTextInput(
                     taskTitle,
@@ -106,7 +88,7 @@ fun AddTaskDialog(
                         .weight(1f)
                 )
                 TaskPlanInput(
-                    plans = model.allPlans.collectAsState(initial = emptyList()).value,
+                    plans = plans,
                     selectedPlan = taskPlan,
                     onPlanChange = { taskPlan = it },
                     modifier = Modifier.fillMaxWidth()
@@ -114,7 +96,7 @@ fun AddTaskDialog(
                 TaskMilestoneInput(
                     selectedMilestone = taskMilestone,
                     onMilestoneChange = { taskMilestone = it },
-                    milestones = taskPlan?.milestones ?: emptyList<String>(),
+                    milestones = taskPlan?.milestones ?: emptyList(),
                     modifier = Modifier.fillMaxWidth()
                 )
                 TaskDateField(
@@ -154,7 +136,6 @@ fun AddTaskDialog(
                         enabled = taskTitle.isNotBlank() && taskPlan != null,
                         onClick = {
                             if (taskToEdit == null) {
-                                // Add new task
                                 model.addTask(
                                     Task(
                                         title = taskTitle,
@@ -188,7 +169,6 @@ fun AddTaskDialog(
                             }
                             onDismiss()
                         }) {
-                        // Change button text based on whether we are editing or adding
                         Text(if (taskToEdit == null || taskToEdit.id == "") "Add" else "Update")
                     }
                 }
@@ -221,6 +201,100 @@ fun AddTaskDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GitHubTaskImportSection(
+    model: GamePlanViewModel,
+    selectedPlan: Plan?,
+    onImport: (String, String, GitHubIssue) -> Unit
+) {
+    var reposExpanded by remember { mutableStateOf(false) }
+    var issuesExpanded by remember { mutableStateOf(false) }
+    var repos by remember { mutableStateOf<List<GitHubRepo>>(emptyList()) }
+    var issues by remember { mutableStateOf<List<GitHubIssue>>(emptyList()) }
+    var selectedRepo by remember { mutableStateOf<GitHubRepo?>(null) }
+    var selectedIssue by remember { mutableStateOf<GitHubIssue?>(null) }
+
+    LaunchedEffect(Unit) {
+        repos = model.getGitHubRepos()
+    }
+
+    LaunchedEffect(selectedRepo) {
+        if (selectedRepo != null) {
+            issues = model.getGitHubIssues(selectedRepo!!.owner.login, selectedRepo!!.name)
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("Import Issue from GitHub", style = MaterialTheme.typography.titleMedium)
+        
+        ExposedDropdownMenuBox(
+            expanded = reposExpanded,
+            onExpandedChange = { reposExpanded = !reposExpanded }
+        ) {
+            OutlinedTextField(
+                value = selectedRepo?.name ?: "Select a repository",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = reposExpanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = reposExpanded,
+                onDismissRequest = { reposExpanded = false }
+            ) {
+                repos.forEach { repo ->
+                    DropdownMenuItem(
+                        text = { Text(repo.name) },
+                        onClick = {
+                            selectedRepo = repo
+                            reposExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        if (selectedRepo != null) {
+            ExposedDropdownMenuBox(
+                expanded = issuesExpanded,
+                onExpandedChange = { issuesExpanded = !issuesExpanded }
+            ) {
+                OutlinedTextField(
+                    value = selectedIssue?.title ?: "Select an issue",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = issuesExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = issuesExpanded,
+                    onDismissRequest = { issuesExpanded = false }
+                ) {
+                    issues.forEach { issue ->
+                        DropdownMenuItem(
+                            text = { Text(issue.title) },
+                            onClick = {
+                                selectedIssue = issue
+                                issuesExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        if (selectedIssue != null) {
+            Button(
+                onClick = { onImport(selectedRepo!!.owner.login, selectedRepo!!.name, selectedIssue!!) },
+                modifier = Modifier.align(Alignment.End).padding(top = 8.dp)
+            ) {
+                Text("Import Issue")
+            }
+        }
+    }
+}
+
 @Composable
 fun TaskTextInput(
     text: String,
@@ -246,7 +320,7 @@ fun TaskMilestoneInput(
     onMilestoneChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     milestones: List<String>,
-    selectedMilestone: String? // Pass in the selected milestone
+    selectedMilestone: String?
 ) {
     var currentSelectedMilestone by remember(selectedMilestone) { mutableStateOf(selectedMilestone) }
     var expanded by remember { mutableStateOf(false) }
@@ -254,7 +328,7 @@ fun TaskMilestoneInput(
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
-        modifier = modifier // This already gets .fillMaxWidth()
+        modifier = modifier
     ) {
         OutlinedTextField(
             value = currentSelectedMilestone ?: "Select a milestone",
@@ -263,7 +337,6 @@ fun TaskMilestoneInput(
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
-            // Apply fillMaxWidth() here
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth()
@@ -272,7 +345,7 @@ fun TaskMilestoneInput(
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.exposedDropdownSize() // This ensures the dropdown matches the text field width
+            modifier = Modifier.exposedDropdownSize()
         ) {
             milestones.forEach { milestone ->
                 DropdownMenuItem(
@@ -295,7 +368,7 @@ fun TaskPlanInput(
     plans: List<Plan>,
     onPlanChange: (Plan) -> Unit,
     modifier: Modifier = Modifier,
-    selectedPlan: Plan? // Pass in the selected plan
+    selectedPlan: Plan?
 ) {
     var currentSelectedPlan by remember(selectedPlan) { mutableStateOf(selectedPlan) }
     var expanded by remember { mutableStateOf(false) }
@@ -303,16 +376,15 @@ fun TaskPlanInput(
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
-        modifier = modifier // This already gets .fillMaxWidth()
+        modifier = modifier
     ) {
         OutlinedTextField(
-            value = currentSelectedPlan?.title ?: "Select a plan to connect to",
+            value = currentSelectedPlan?.title ?: "Select a plan",
             onValueChange = {},
             readOnly = true,
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
-            // Apply fillMaxWidth() here
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth()
@@ -321,7 +393,7 @@ fun TaskPlanInput(
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.exposedDropdownSize() // This ensures the dropdown matches the text field width
+            modifier = Modifier.exposedDropdownSize()
         ) {
             plans.forEach { plan ->
                 DropdownMenuItem(
@@ -345,24 +417,17 @@ fun TaskDateField(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
-
     OutlinedTextField(
-        value = selectedDate?.let { formatter.format(it) } ?: "",
-        onValueChange = { },
-        label = { Text(label) },
+        value = selectedDate?.toString() ?: "",
+        onValueChange = {},
         readOnly = true,
+        label = { Text(label) },
         trailingIcon = {
             IconButton(onClick = onSelect) {
-                Icon(
-                    imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = "Select date (Optional for Sprints)"
-                )
+                Icon(Icons.Default.CalendarMonth, contentDescription = "Select Date")
             }
         },
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(6.dp)
+        modifier = modifier.padding(6.dp)
     )
 }
 

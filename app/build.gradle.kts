@@ -71,6 +71,10 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation("com.google.code.gson:gson:2.10.1")
     
+    // Retrofit for GitHub API
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    
     // Support for Firebase Coroutines (await())
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
     

@@ -166,7 +166,11 @@ fun GroupPlans(
             }
 
             // Display the plan title and its progress bar
-            Row(modifier = Modifier.padding(horizontal = 4.dp)) {
+            Row(
+                modifier = Modifier.padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
                     text = plan.title,
                     style = MaterialTheme.typography.bodyLarge,

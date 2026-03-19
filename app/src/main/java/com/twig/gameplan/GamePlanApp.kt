@@ -69,6 +69,7 @@ fun GamePlanApp(
     var showPlanDialog by rememberSaveable { mutableStateOf(false) }
     var showTaskDialog by rememberSaveable { mutableStateOf(false) }
     var showGroupDialog by rememberSaveable { mutableStateOf(false) }
+    var showSignOutDialog by rememberSaveable { mutableStateOf(false) }
     var taskToEdit by rememberSaveable { mutableStateOf<Task?>(null) }
     var planToEdit by rememberSaveable { mutableStateOf<Plan?>(null) }
     val navController = rememberNavController()
@@ -80,11 +81,14 @@ fun GamePlanApp(
         startDestination = if (currentUser == null) Routes.Auth else Routes.Plans,
     ) {
         composable<Routes.Auth> {
-            AuthScreen(onAuthSuccess = {
-                navController.navigate(Routes.Plans) {
-                    popUpTo(Routes.Auth) { inclusive = true }
-                }
-            })
+            AuthScreen(
+                onAuthSuccess = {
+                    navController.navigate(Routes.Plans) {
+                        popUpTo(Routes.Auth) { inclusive = true }
+                    }
+                },
+                model = model
+            )
         }
 
         composable<Routes.Plans> {
@@ -92,8 +96,7 @@ fun GamePlanApp(
                 topBar = {
                     GamePlanTopBar(
                         canNavigateBack = false,
-                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { /* Handle delete completed tasks in TopBar or here */ },
+                        onSignOutPressed = { showSignOutDialog = true },
                         model = model
                     )
                 },
@@ -124,8 +127,7 @@ fun GamePlanApp(
                 topBar = {
                     GamePlanTopBar(
                         canNavigateBack = false,
-                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { },
+                        onSignOutPressed = { showSignOutDialog = true },
                         model = model
                     )
                 },
@@ -159,8 +161,7 @@ fun GamePlanApp(
                     GamePlanTopBar(
                         canNavigateBack = true,
                         onUpClick = { navController.navigateUp() },
-                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { },
+                        onSignOutPressed = { showSignOutDialog = true },
                         model = model
                     )
                 },
@@ -201,8 +202,7 @@ fun GamePlanApp(
                 topBar = {
                     GamePlanTopBar(
                         canNavigateBack = false,
-                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { },
+                        onSignOutPressed = { showSignOutDialog = true },
                         model = model
                     )
                 },
@@ -232,8 +232,7 @@ fun GamePlanApp(
                     GamePlanTopBar(
                         canNavigateBack = true,
                         onUpClick = { navController.navigateUp() },
-                        canDeleteTasks = model.completedTasksExist.collectAsState(initial = false).value,
-                        onDeleteAction = { },
+                        onSignOutPressed = { showSignOutDialog = true },
                         model = model
                     )
                 },
@@ -294,6 +293,19 @@ fun GamePlanApp(
             modifier = Modifier.fillMaxSize(0.9f)
         )
     }
+
+    if (showSignOutDialog) {
+        SignOutConfirmationDialog(
+            onConfirm = {
+                FirebaseAuth.getInstance().signOut()
+                navController.navigate(Routes.Auth) {
+                    popUpTo(Routes.Plans) { inclusive = true }
+                }
+                showSignOutDialog = false
+            },
+            onDismiss = { showSignOutDialog = false }
+        )
+    }
 }
 
 @Composable
@@ -325,6 +337,28 @@ fun DeleteConfirmationDialog(
         onDismissRequest = onDismiss,
         title = { Text("Delete") },
         text = { Text("Are you sure you want to delete this item?") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Yes")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("No")
+            }
+        }
+    )
+}
+
+@Composable
+fun SignOutConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sign Out") },
+        text = { Text("Are you sure you want to sign out?") },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text("Yes")
